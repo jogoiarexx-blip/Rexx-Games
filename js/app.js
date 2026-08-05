@@ -40,6 +40,7 @@ const GAMES = [
     title: 'Navinha Arcade',
     genre: 'shooter',
     accent: 'var(--fire)',
+    thumb: 'assets/thumbs/navinha-arcade.jpg',
     desc: 'Shmup de 10 fases: resgate aliados, colete upgrades e enfrente um chefe por fase.',
     path: 'jogos/navinha-arcade/index.html'
   },
@@ -65,8 +66,12 @@ function renderBanner(){
 }
 
 function cardHTML(game){
+  const thumb = game.thumb
+    ? `<div class="card-thumb"><img src="${game.thumb}" alt="Tela de ${game.title}" loading="lazy"></div>`
+    : '';
   return `
     <a class="card" href="${game.path}" style="--accent:${game.accent}" data-genre="${game.genre}" data-title="${game.title.toLowerCase()}">
+      ${thumb}
       <span class="tag">${game.genre}</span>
       <h2>${game.title}</h2>
       <p>${game.desc}</p>
