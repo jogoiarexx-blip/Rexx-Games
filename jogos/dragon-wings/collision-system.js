@@ -83,7 +83,9 @@ const collisionSystem = {
     checkPlayerVsEnemyFireballs() {
         if (dragon.invulnerable) return;
         
-        gameEntities.fireballs.forEach((fb, index) => {
+        // CORREÇÃO: Usar loop reverso para evitar pular elementos ao usar splice
+        for (let index = gameEntities.fireballs.length - 1; index >= 0; index--) {
+            const fb = gameEntities.fireballs[index];
             if (fb.type === 'enemy' && this.checkCircle(dragon, fb)) {
                 const damage = fb.damage;
                 dragon.takeDamage(damage);
@@ -98,7 +100,7 @@ const collisionSystem = {
                 // Efeito de impacto
                 this.createImpactEffect(fb.x, fb.y, fb.color || '#FF0000');
             }
-        });
+        }
     },
     
     checkPlayerVsCoins() {
@@ -115,6 +117,11 @@ const collisionSystem = {
                 
                 // Efeito visual
                 this.createCollectEffect(coin.x, coin.y, '#FFD700');
+                
+                // ✨ MELHORIA: Pulso/partículas do coin-effects.js ao coletar
+                if (typeof coinEffects !== 'undefined') {
+                    coinEffects.onCollect(coin.x + coin.width / 2, coin.y + coin.height / 2, gameData.ctx);
+                }
                 
                 gameEntities.coins.splice(index, 1);
             }
@@ -135,6 +142,11 @@ const collisionSystem = {
                 
                 // Efeito visual
                 this.createCollectEffect(powerup.x, powerup.y, '#00FF00');
+                
+                // ✨ MELHORIA: Onda de choque/partículas do powerup-effects.js ao coletar
+                if (typeof powerUpEffects !== 'undefined') {
+                    powerUpEffects.onCollect(powerup.x + powerup.width / 2, powerup.y + powerup.height / 2, powerup.type, gameData.ctx);
+                }
                 
                 gameEntities.powerups.splice(index, 1);
             }
@@ -182,21 +194,23 @@ const collisionSystem = {
         
         const boss = gameEntities.boss;
         
-        gameEntities.fireballs.forEach((fb, index) => {
-            if (fb.type !== 'player') return;
+        // CORREÇÃO: Usar loop reverso para evitar pular elementos ao usar splice
+        for (let index = gameEntities.fireballs.length - 1; index >= 0; index--) {
+            const fb = gameEntities.fireballs[index];
+            if (fb.type !== 'player') continue;
             
             if (this.checkCircle(fb, boss)) {
                 const destroyed = boss.takeDamage(fb.damage);
+                
+                gameEntities.fireballs.splice(index, 1);
+                this.createImpactEffect(fb.x, fb.y, fb.color || '#FF6B35');
                 
                 if (destroyed) {
                     // Boss derrotado - completar fase
                     game.completeStage();
                 }
-                
-                gameEntities.fireballs.splice(index, 1);
-                this.createImpactEffect(fb.x, fb.y, fb.color || '#FF6B35');
             }
-        });
+        }
     },
     
     checkPlayerVsBoss() {

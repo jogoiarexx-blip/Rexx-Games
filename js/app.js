@@ -51,6 +51,14 @@ const GAMES = [
     accent: 'var(--steel-dim)',
     desc: 'Modelo em branco pra você copiar quando for montar um jogo novo.',
     path: 'jogos/exemplo/index.html'
+  },
+  {
+    id: 'breakout',
+    title: 'Modern Breakout',
+    genre: 'arcade',
+    accent: '#00d2ff',
+    desc: 'Breakout premium com power-ups, combos, loja de upgrades, conquistas e chefes a cada 10 fases.',
+    path: 'jogos/breakout/index.html'
   }
 ];
 

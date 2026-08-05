@@ -27,6 +27,10 @@ const gameIntegration = {
         rankSystem.init();
         escortManager.init();
         
+        // ✨ MELHORIA: Sistemas visuais de moedas e power-ups (existiam mas nunca eram chamados)
+        if (typeof coinEffects !== 'undefined') coinEffects.init();
+        if (typeof powerUpEffects !== 'undefined') powerUpEffects.init();
+        
         // Sobrescrever métodos do jogo original
         this.integrateWithGameLoop();
         this.integrateWithReset();
@@ -88,13 +92,25 @@ const gameIntegration = {
                 }
             });
             
+            // ✨ MELHORIA: Efeitos visuais 3D/partículas/trail das moedas
+            if (typeof coinEffects !== 'undefined') {
+                coinEffects.update(gameEntities.coins);
+            }
+            
+            // ✨ MELHORIA: Efeitos visuais e magnetismo dos power-ups
+            if (typeof powerUpEffects !== 'undefined') {
+                powerUpEffects.update(gameEntities.powerups, dragon.x + dragon.width / 2, dragon.y + dragon.height / 2);
+            }
+            
             // Update de power-ups
             gameEntities.powerups.forEach(pu => {
                 pu.y += pu.speed;
             });
             
             // Update de partículas
-            gameEntities.particles.forEach((particle, index) => {
+            // CORREÇÃO: loop reverso para não pular partículas ao usar splice
+            for (let index = gameEntities.particles.length - 1; index >= 0; index--) {
+                const particle = gameEntities.particles[index];
                 particle.x += particle.vx;
                 particle.y += particle.vy;
                 particle.life--;
@@ -102,7 +118,7 @@ const gameIntegration = {
                 if (particle.life <= 0) {
                     gameEntities.particles.splice(index, 1);
                 }
-            });
+            }
             
             // Sistema de colisão
             collisionSystem.checkAll();
@@ -147,36 +163,46 @@ const gameIntegration = {
             // Desenhar estrelas
             entities.drawStars();
             
-            // Desenhar moedas
-            gameEntities.coins.forEach(coin => {
-                ctx.fillStyle = '#FFD700';
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#FFD700';
-                ctx.beginPath();
-                ctx.arc(coin.x + coin.width / 2, coin.y + coin.height / 2, 
-                       coin.width / 2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowBlur = 0;
-            });
+            // ✨ MELHORIA: Moedas com efeito 3D, brilho pulsante, partículas e trail
+            if (typeof coinEffects !== 'undefined') {
+                coinEffects.draw(ctx, gameEntities.coins);
+            } else {
+                // Fallback simples caso coin-effects.js não esteja carregado
+                gameEntities.coins.forEach(coin => {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#FFD700';
+                    ctx.beginPath();
+                    ctx.arc(coin.x + coin.width / 2, coin.y + coin.height / 2, 
+                           coin.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+            }
             
-            // Desenhar power-ups
-            gameEntities.powerups.forEach(pu => {
-                const icons = {
-                    'health': '❤️',
-                    'rapid_fire': '⚡',
-                    'shield': '🛡️',
-                    'bomb': '💣'
-                };
-                
-                ctx.fillStyle = '#00FF00';
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#00FF00';
-                ctx.fillRect(pu.x, pu.y, pu.width, pu.height);
-                
-                ctx.font = '24px Arial';
-                ctx.fillText(icons[pu.type] || '?', pu.x + 3, pu.y + 22);
-                ctx.shadowBlur = 0;
-            });
+            // ✨ MELHORIA: Power-ups com ícones customizados, glow, partículas e magnetismo
+            if (typeof powerUpEffects !== 'undefined') {
+                powerUpEffects.draw(ctx, gameEntities.powerups);
+            } else {
+                // Fallback simples caso powerup-effects.js não esteja carregado
+                gameEntities.powerups.forEach(pu => {
+                    const icons = {
+                        'health': '❤️',
+                        'rapid_fire': '⚡',
+                        'shield': '🛡️',
+                        'bomb': '💣'
+                    };
+                    
+                    ctx.fillStyle = '#00FF00';
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#00FF00';
+                    ctx.fillRect(pu.x, pu.y, pu.width, pu.height);
+                    
+                    ctx.font = '24px Arial';
+                    ctx.fillText(icons[pu.type] || '?', pu.x + 3, pu.y + 22);
+                    ctx.shadowBlur = 0;
+                });
+            }
             
             // Desenhar inimigos
             gameEntities.enemies.forEach(enemy => enemy.draw(ctx));
