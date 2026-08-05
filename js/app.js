@@ -59,6 +59,15 @@ const GAMES = [
     accent: '#00d2ff',
     desc: 'Breakout premium com power-ups, combos, loja de upgrades, conquistas e chefes a cada 10 fases.',
     path: 'jogos/breakout/index.html'
+  },
+  {
+    id: 'last-campfire',
+    title: 'Last Campfire',
+    genre: 'sobrevivência',
+    accent: 'var(--fire)',
+    thumb: 'assets/thumbs/last-campfire.jpg',
+    desc: 'Mantenha a fogueira acesa até o amanhecer: gerencie recursos, loja e conquistas do acampamento.',
+    path: 'jogos/last-campfire/index.html'
   }
 ];
 
