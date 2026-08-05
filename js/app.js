@@ -1,0 +1,1 @@
+const banner={image:'assets/banner-placeholder.png',link:'https://example.com'};merchImg.src=banner.image;merchLink.href=banner.link;
