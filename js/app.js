@@ -64,9 +64,9 @@ const GAMES = [
     id: 'last-campfire',
     title: 'Last Campfire',
     genre: 'sobrevivência',
-    accent: 'var(--fire)',
+    accent: '#ff9d42',
     thumb: 'assets/thumbs/last-campfire.jpg',
-    desc: 'Mantenha a fogueira acesa até o amanhecer: gerencie recursos, loja e conquistas do acampamento.',
+    desc: 'Mantenha a fogueira acesa até o amanhecer: arraste madeira, resista à chuva e ao vento e evolua seu acampamento.',
     path: 'jogos/last-campfire/index.html'
   }
 ];
