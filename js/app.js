@@ -32,6 +32,7 @@ const GAMES = [
     title: 'Dragon Wings',
     genre: 'shooter',
     accent: 'var(--fire)',
+    thumb: 'assets/thumbs/dragon-wings.jpg',
     desc: 'Shmup bullet-heaven: desvie de padrões de tiro, suba de nível e enfrente chefes.',
     path: 'jogos/dragon-wings/index.html'
   },
@@ -57,6 +58,7 @@ const GAMES = [
     title: 'Modern Breakout',
     genre: 'arcade',
     accent: '#00d2ff',
+    thumb: 'assets/thumbs/breakout.jpg',
     desc: 'Breakout premium com power-ups, combos, loja de upgrades, conquistas e chefes a cada 10 fases.',
     path: 'jogos/breakout/index.html'
   },
