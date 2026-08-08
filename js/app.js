@@ -32,7 +32,6 @@ const GAMES = [
     title: 'Dragon Wings',
     genre: 'shooter',
     accent: 'var(--fire)',
-    thumb: 'assets/thumbs/dragon-wings.jpg',
     desc: 'Shmup bullet-heaven: desvie de padrões de tiro, suba de nível e enfrente chefes.',
     path: 'jogos/dragon-wings/index.html'
   },
@@ -58,7 +57,6 @@ const GAMES = [
     title: 'Modern Breakout',
     genre: 'arcade',
     accent: '#00d2ff',
-    thumb: 'assets/thumbs/breakout.jpg',
     desc: 'Breakout premium com power-ups, combos, loja de upgrades, conquistas e chefes a cada 10 fases.',
     path: 'jogos/breakout/index.html'
   },
@@ -66,10 +64,18 @@ const GAMES = [
     id: 'last-campfire',
     title: 'Last Campfire',
     genre: 'sobrevivência',
-    accent: '#ff9d42',
+    accent: 'var(--fire)',
     thumb: 'assets/thumbs/last-campfire.jpg',
-    desc: 'Mantenha a fogueira acesa até o amanhecer: arraste madeira, resista à chuva e ao vento e evolua seu acampamento.',
+    desc: 'Mantenha a fogueira acesa até o amanhecer: gerencie recursos, loja e conquistas do acampamento.',
     path: 'jogos/last-campfire/index.html'
+  },
+  {
+    id: 'zeco-lendas-da-ilha',
+    title: 'Zeco e a Ilha das Gemas',
+    genre: 'plataforma',
+    accent: '#ffd166',
+    desc: 'Ajude Zeco a atravessar a ilha, pular nos capangas do Barão Sombra e recuperar todas as gemas.',
+    path: 'jogos/zeco-lendas-da-ilha/index.html'
   }
 ];
 
