@@ -74,6 +74,7 @@ const GAMES = [
     title: 'Zeco e a Ilha das Gemas',
     genre: 'plataforma',
     accent: '#ffd166',
+    thumb: 'assets/thumbs/zeco-lendas-da-ilha.jpg',
     desc: 'Ajude Zeco a atravessar a ilha, pular nos capangas do Barão Sombra e recuperar todas as gemas.',
     path: 'jogos/zeco-lendas-da-ilha/index.html'
   }
