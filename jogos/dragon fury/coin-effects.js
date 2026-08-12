@@ -182,7 +182,7 @@ const coinEffects = {
         ctx.shadowColor = '#FFD700';
         ctx.shadowOffsetY = 3 * Math.sin(coin.rotation3D);
         
-        // Desenhar moeda como oval 3D
+        // Desenhar moeda como octógono facetado 3D (🔧 MELHORADO: era uma elipse lisa, agora tem facetas)
         ctx.scale(coin.scale3D, 1);
         
         // Gradiente dourado metálico
@@ -194,17 +194,14 @@ const coinEffects = {
         coinGradient.addColorStop(0.7, '#FFD700');
         coinGradient.addColorStop(1, '#FFE55C');
         
-        // Corpo da moeda
+        // Corpo da moeda (octógono em vez de elipse)
         ctx.fillStyle = coinGradient;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, coin.width/2, coin.height/2, 0, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygon(ctx, 0, 0, coin.width / 2, 8, coin.rotation3D);
         
-        // Borda interna brilhante
+        // Borda interna brilhante (🔧 NOVO: também facetada, acompanhando o corpo)
         ctx.strokeStyle = '#FFEC8B';
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, coin.width/2 - 2, coin.height/2 - 2, 0, 0, Math.PI * 2);
+        drawPolygonPath(ctx, 0, 0, coin.width / 2 - 2, 8, coin.rotation3D);
         ctx.stroke();
         
         // Símbolo no centro (sempre visível)

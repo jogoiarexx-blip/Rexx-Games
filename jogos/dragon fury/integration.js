@@ -21,11 +21,29 @@ const gameIntegration = {
         
         console.log('🔧 Inicializando sistemas avançados...');
         
+        // 🔧 BUGFIX CRÍTICO: gameIntegration.init() roda no DOMContentLoaded
+        // ANTES de game.init() (integration.js registra seu listener antes
+        // de main.js, pela ordem dos <script> no index.html). Isso significa
+        // que gameData.canvas ainda era `null` aqui embaixo, e
+        // parallaxSystem.init(1) quebrava com "Cannot read properties of
+        // null (reading 'width')" — o que interrompia esta função NO MEIO,
+        // antes de chegar em integrateWithGameLoop()/integrateWithDraw()/
+        // integrateWithReset(). Resultado: game.update/draw/reset NUNCA
+        // eram sobrescritos, e o jogo inteiro caía de volta no código antigo
+        // (entities.drawEnemies()/drawCoins(), que só faz ctx.fillRect() —
+        // quadrados lisos, sem forma nenhuma). Garantindo o canvas aqui,
+        // isso não depende mais da ordem de carregamento dos scripts.
+        if (!gameData.canvas) {
+            gameData.canvas = document.getElementById('gameCanvas');
+            gameData.ctx = gameData.canvas.getContext('2d');
+        }
+        
         // Inicializar sistemas
         phaseSystem.init();
         spawnSystem.init();
         rankSystem.init();
         escortManager.init();
+        escortManager.checkAndRestore();
         
         // 🔧 BUGFIX: inicializar os sistemas visuais na fase 1 desde o início
         if (typeof parallaxSystem !== 'undefined') parallaxSystem.init(1);
@@ -256,12 +274,26 @@ const gameIntegration = {
             // Desenhar jogador
             dragon.draw();
             
-            // Desenhar fireballs
+            // Desenhar fireballs (🔧 MELHORADO: cristal alongado orientado pela direção, em vez de quadrado)
             gameEntities.fireballs.forEach(fb => {
-                ctx.fillStyle = fb.color || (fb.type === 'player' ? '#FF6B35' : '#FF0000');
+                const centerX = fb.x + fb.width / 2;
+                const centerY = fb.y + fb.height / 2;
+                
+                // Direção do movimento (usa vx/vy quando existem; senão, cima/baixo conforme o tipo)
+                let angle;
+                if (fb.vx !== undefined || fb.vy !== undefined) {
+                    angle = Math.atan2(fb.vy || 0, fb.vx || 0);
+                } else {
+                    angle = fb.type === 'player' ? -Math.PI / 2 : Math.PI / 2;
+                }
+                
+                const isPlayer = fb.type === 'player';
+                const colorCore = fb.color || (isPlayer ? '#FFF3B0' : '#FFB0B0');
+                const colorEdge = fb.color || (isPlayer ? '#FF6B35' : '#FF0000');
+                
                 ctx.shadowBlur = 8;
-                ctx.shadowColor = ctx.fillStyle;
-                ctx.fillRect(fb.x, fb.y, fb.width, fb.height);
+                ctx.shadowColor = colorEdge;
+                drawFireballShape(ctx, centerX, centerY, fb.width / 2, angle, colorCore, colorEdge);
                 ctx.shadowBlur = 0;
             });
             

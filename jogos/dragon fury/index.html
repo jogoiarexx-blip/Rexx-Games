@@ -22,7 +22,7 @@
             <div class="features-list">
                 <p>✅ 6 Tipos de Inimigos Únicos</p>
                 <p>✅ 3 Bosses Épicos</p>
-                <p>✅ 6 Fases Progressivas</p>
+                <p>✅ 5 Fases Progressivas</p>
                 <p>✅ Sistema de Rank (C → SS)</p>
                 <p>✅ Dragões Escolta</p>
             </div>
@@ -73,7 +73,17 @@
             </div>
             <p>Pontuação: <span id="stage-complete-score">0</span></p>
             <p>Moedas: <span id="stage-complete-coins">0</span></p>
-            <p class="stage-complete-hint">Pressione ENTER ou ESPAÇO para pular</p>
+
+            <!-- 🔧 NOVO: Seletor de fase - substitui o antigo avanço
+                 automático por 3 escolhas explícitas do jogador -->
+            <div id="stage-complete-actions" class="stage-complete-actions">
+                <button id="stage-complete-next-btn" class="menu-button stage-complete-btn"
+                        onclick="game.nextStage()">▶️ Próxima Fase</button>
+                <button class="menu-button stage-complete-btn stage-complete-btn-secondary"
+                        onclick="game.repeatStage()">🔁 Repetir Fase</button>
+                <button class="menu-button stage-complete-btn stage-complete-btn-secondary"
+                        onclick="ui.showUpgradesFromStageComplete()">🛒 Comprar Upgrade</button>
+            </div>
         </div>
 
         <!-- Jogo Completo -->

@@ -23,6 +23,7 @@ const game = {
                     this.pauseGame();
                 }
             } else if (gameData.gameState === 'stage_complete') {
+                // Atalho de teclado: Enter/Espaço = "Próxima Fase" (mesmo botão do seletor)
                 if (e.key === 'Enter' || e.key === ' ') {
                     this.nextStage();
                 }
@@ -198,6 +199,13 @@ const game = {
     },
     
     completeStage() {
+        // 🔧 BUGFIX: alguns caminhos de colisão podem tentar "matar" o boss
+        // mais de uma vez no mesmo frame (ex.: dano múltiplo do upgrade Tiro
+        // Múltiplo acertando o boss simultaneamente). Sem essa guarda,
+        // completeStage() rodava 2x, dobrando bônus/moedas e recriando a
+        // tela de fase completa por cima dela mesma.
+        if (gameData.gameState === 'stage_complete') return;
+        
         console.log(`🎉 Fase ${gameData.currentStage} completa!`);
         
         // 🔧 BUGFIX: Limpar timers antigos ANTES de criar novos
@@ -223,24 +231,19 @@ const game = {
         localStorage.setItem('dragonCoins', gameStats.coins);
         localStorage.setItem('dragonTotalCoins', gameStats.totalCoins);
         
+        // ✨ NOVO: em vez de avançar sozinho após alguns segundos, mostra a
+        // pontuação e o seletor de fase (Próxima Fase / Repetir Fase /
+        // Comprar Upgrade) e espera a escolha do jogador.
         ui.showStageComplete();
         achievementManager.check();
-        
-        // ✨ Timer de auto-avanço após 5 segundos
-        console.log('⏰ Configurando timer de auto-avanço (5s)...');
-        gameData.stageCompleteTimer = setTimeout(() => {
-            console.log('⏰ Timer de auto-avanço disparado');
-            // 🔧 BUGFIX: Verificação RIGOROSA do estado antes de avançar
-            if (gameData.gameState === 'stage_complete') {
-                console.log('✅ Estado correto, avançando fase...');
-                this.nextStage();
-            } else {
-                console.log('⚠️ Estado mudou, cancelando auto-avanço. Estado atual:', gameData.gameState);
-            }
-        }, 5000);
     },
     
     nextStage() {
+        // 🔧 BUGFIX: ignora chamadas duplicadas (ex.: clique no botão +
+        // tecla Enter no mesmo instante, ou o próprio botão sendo
+        // pressionado duas vezes rapidamente).
+        if (gameData.gameState !== 'stage_complete') return;
+        
         console.log(`➡️ Avançando para próxima fase...`);
         
         // 🔧 BUGFIX: Limpar timers IMEDIATAMENTE ao avançar manualmente
@@ -313,6 +316,55 @@ const game = {
         }
         
         // ✨ RANK SYSTEM: Reiniciar tracking para nova fase
+        if (typeof rankSystem !== 'undefined') {
+            rankSystem.startPhase();
+        }
+        
+        gameData.gameState = 'playing';
+        ui.updateHUD();
+        this.loop();
+    },
+    
+    // ✨ NOVO: Repetir a fase atual (mesmo número de fase) a partir do
+    // seletor de fase, em vez de avançar. Útil para tentar melhorar o
+    // rank/pontuação ou farmar moedas antes de seguir em frente.
+    repeatStage() {
+        if (gameData.gameState !== 'stage_complete') return;
+        
+        console.log(`🔁 Repetindo fase ${gameData.currentStage}...`);
+        
+        this.clearAllTimers();
+        ui.hideStageComplete();
+        
+        const stageToRepeat = gameData.currentStage;
+        
+        // Reaplica a mesma fase: zera kills, boss ativo, velocidade etc,
+        // sem incrementar o número da fase.
+        phaseSystem.applyPhase(stageToRepeat);
+        
+        gameData.currentWave = 1;
+        entities.waveTimer = 0;
+        
+        gameEntities.enemies = [];
+        gameEntities.fireballs = gameEntities.fireballs.filter(f => f.type === 'player');
+        gameEntities.powerups = [];
+        gameEntities.boss = null;
+        
+        // Vida cheia para uma nova tentativa
+        gameStats.health = 100 + (upgrades.health.level * 20);
+        
+        if (typeof phaseTransitions !== 'undefined') {
+            phaseTransitions.startTransition(stageToRepeat, stageToRepeat, 'fade');
+        }
+        
+        if (typeof parallaxSystem !== 'undefined') {
+            parallaxSystem.init(stageToRepeat);
+        }
+        
+        if (typeof phaseEffects !== 'undefined') {
+            phaseEffects.init(stageToRepeat);
+        }
+        
         if (typeof rankSystem !== 'undefined') {
             rankSystem.startPhase();
         }
@@ -525,10 +577,64 @@ const game = {
         const deltaTime = currentTime - gameData.lastTime;
         gameData.lastTime = currentTime;
         
-        this.update();
-        this.draw();
+        // 🔧 NOVO: rede de segurança contra travamentos silenciosos.
+        // Antes, se update() ou draw() lançassem uma exceção (por
+        // qualquer motivo - um inimigo novo, um boss, etc.), o loop
+        // simplesmente parava de chamar requestAnimationFrame e o jogo
+        // "congelava" sem nenhuma mensagem visível, só um erro escondido
+        // no console. Agora, qualquer erro é capturado, mostrado na tela
+        // (com a fase atual e a mensagem exata) e logado no console -
+        // então dá pra saber na hora o que quebrou, em vez de só "travou".
+        try {
+            this.update();
+            this.draw();
+        } catch (err) {
+            console.error('💥 ERRO NO LOOP DO JOGO:', err);
+            this.showCrashOverlay(err);
+            return; // não re-agenda o loop; o jogo realmente para aqui
+        }
         
         gameData.animationId = requestAnimationFrame((time) => this.loop(time));
+    },
+    
+    // 🔧 NOVO: mostra o erro na tela em vez de travar sem explicação
+    showCrashOverlay(err) {
+        const ctx = gameData.ctx;
+        if (!ctx || !gameData.canvas) return;
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, gameData.canvas.width, gameData.canvas.height);
+        
+        ctx.fillStyle = '#FF4444';
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚠️ Erro no jogo (fase ' + gameData.currentStage + ')',
+                      gameData.canvas.width / 2, gameData.canvas.height / 2 - 40);
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '14px monospace';
+        const message = (err && err.message) ? err.message : String(err);
+        // Quebra a mensagem em linhas para caber na tela
+        const maxCharsPerLine = 46;
+        const words = message.split(' ');
+        let line = '';
+        let lineY = gameData.canvas.height / 2 - 5;
+        words.forEach(word => {
+            if ((line + word).length > maxCharsPerLine) {
+                ctx.fillText(line, gameData.canvas.width / 2, lineY);
+                line = word + ' ';
+                lineY += 20;
+            } else {
+                line += word + ' ';
+            }
+        });
+        ctx.fillText(line, gameData.canvas.width / 2, lineY);
+        
+        ctx.fillStyle = '#AAAAAA';
+        ctx.font = '13px Arial';
+        ctx.fillText('Tira um print desta tela e manda pra mim analisar',
+                      gameData.canvas.width / 2, lineY + 35);
+        ctx.textAlign = 'left';
     },
     
     gameOver() {

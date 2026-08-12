@@ -61,7 +61,7 @@ class DragaoEscolta {
         if (currentTime - this.lastShot < this.fireRate) return;
         
         this.lastShot = currentTime;
-        const fireballSpeed = 11;
+        const fireballSpeed = 2 + (upgrades.bulletSpeed.level * 2);
         const fireballSize = 9;
         // Dano = 60% do dano do player (firepower base é 10, então 10 * firepower * 0.6)
         const damage = Math.floor(10 * gameStats.firepower * 0.6);
@@ -412,19 +412,14 @@ if (typeof upgrades !== 'undefined' && upgrades.escorts) {
     console.log('✅ Métodos de ativação adicionados ao upgrade escorts');
 }
 
-// ===== INICIALIZAÇÃO AUTOMÁTICA =====
-// Inicializar quando o documento estiver pronto
-if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            escortManager.init();
-            escortManager.checkAndRestore();
-        });
-    } else {
-        escortManager.init();
-        escortManager.checkAndRestore();
-    }
-}
+// ===== INICIALIZAÇÃO =====
+// 🔧 BUGFIX: NÃO inicializar aqui via DOMContentLoaded — integration.js já
+// chama escortManager.init() dentro de gameIntegration.init() (que roda no
+// próprio DOMContentLoaded). Ter os dois ouvindo o mesmo evento é uma corrida:
+// o segundo a rodar sempre apagava o que o primeiro (este bloco) tivesse
+// restaurado via checkAndRestore(), tornando checkAndRestore() morto na
+// prática. escortManager.init() continua exportado e é chamado normalmente
+// por integration.js e pelo game.reset() sobrescrito.
 
 // Exportar para uso global
 if (typeof window !== 'undefined') {

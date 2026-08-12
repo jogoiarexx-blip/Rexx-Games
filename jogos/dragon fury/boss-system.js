@@ -22,10 +22,17 @@ class BaseBoss {
         this.invulnerable = false;
         this.animationFrame = 0;
         this.hitFlash = 0;
+        // 🔧 BUGFIX: sem essa flag, upgrades como Tiro Múltiplo podiam
+        // acertar o boss com 2+ fireballs no MESMO frame. A primeira já
+        // zerava a vida e chamava destroy()/completeStage(); a(s) seguinte(s)
+        // chamavam takeDamage() de novo no mesmo boss "morto", disparando
+        // destroy() e completeStage() outra(s) vez (bônus/moedas duplicados,
+        // tela de fase completa reaberta por cima dela mesma).
+        this.destroyed = false;
     }
     
     takeDamage(damage) {
-        if (this.invulnerable || this.state === 'entering') return false;
+        if (this.invulnerable || this.state === 'entering' || this.destroyed) return false;
         
         this.health -= damage;
         this.hitFlash = 15;
@@ -41,6 +48,7 @@ class BaseBoss {
         }
         
         if (this.health <= 0) {
+            this.destroyed = true;
             this.destroy();
             return true;
         }

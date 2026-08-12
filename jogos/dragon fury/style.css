@@ -359,25 +359,25 @@ body {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
-.stage-complete-hint {
-    font-size: 20px !important;
-    color: #FFFFFF !important;
-    margin-top: 30px !important;
-    animation: blink 1.5s infinite;
+/* 🔧 NOVO: Seletor de fase (Próxima Fase / Repetir Fase / Comprar Upgrade) */
+.stage-complete-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-top: 25px;
 }
 
-.stage-complete-countdown {
-    font-size: 28px !important;
-    color: #00FF00 !important;
-    margin: 20px 0 !important;
-    font-weight: bold !important;
-    text-shadow: 0 0 20px rgba(0, 255, 0, 0.8), 0 0 40px rgba(0, 255, 0, 0.5) !important;
-    animation: pulse 1s infinite;
+.stage-complete-btn {
+    width: 260px !important;
+    font-size: 18px !important;
 }
 
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+.stage-complete-btn-secondary {
+    background: linear-gradient(135deg,
+        rgba(80, 80, 90, 0.9) 0%,
+        rgba(50, 50, 60, 0.9) 100%) !important;
+    border-image: linear-gradient(135deg, #AAAAAA, #666666) 1 !important;
 }
 
 /* ===== GAME COMPLETE ===== */

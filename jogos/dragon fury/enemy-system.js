@@ -216,11 +216,11 @@ class BasicEnemy extends BaseEnemy {
         ctx.closePath();
         ctx.fill();
         
-        // Corpo (🔧 NOVO: heptágono facetado em vez de elipse lisa)
-        ctx.fillStyle = this.color;
+        // Corpo (🔧 MELHORADO: gradiente radial + contorno em vez de cor chapada)
         ctx.shadowBlur = 10;
         ctx.shadowColor = this.color;
-        fillPolygon(ctx, centerX, centerY, 17, 7, -Math.PI / 2);
+        fillPolygonGradient(ctx, centerX, centerY, 17, 7, '#FF6B47', this.color, -Math.PI / 2);
+        strokePolygon(ctx, centerX, centerY, 17, 7, 'rgba(0,0,0,0.4)', 1.5, -Math.PI / 2);
         
         // 🔧 NOVO: anel externo facetado (contorno decagonal) para reforçar o visual poligonal
         ctx.strokeStyle = 'rgba(255, 69, 0, 0.6)';
@@ -321,7 +321,15 @@ class ZigZagEnemy extends BaseEnemy {
         ctx.lineTo(8, 15);
         ctx.lineTo(15, 8);
         ctx.closePath();
+        // 🔧 MELHORADO: gradiente linear no corpo em flecha em vez de cor chapada
+        const zzGradient = ctx.createLinearGradient(0, -20, 0, 15);
+        zzGradient.addColorStop(0, '#FFB6C1');
+        zzGradient.addColorStop(1, this.color);
+        ctx.fillStyle = zzGradient;
         ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
         
         // Núcleo (🔧 NOVO: hexágono em vez de círculo)
         ctx.fillStyle = '#FFD700';
@@ -400,7 +408,6 @@ class TankEnemy extends BaseEnemy {
         }
         
         // Corpo principal blindado (🔧 NOVO: casco octogonal chanfrado em vez de retângulo reto)
-        ctx.fillStyle = this.color;
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#000';
         const bevel = 10;
@@ -414,7 +421,16 @@ class TankEnemy extends BaseEnemy {
         ctx.lineTo(this.x, this.y + this.height - bevel);
         ctx.lineTo(this.x, this.y + bevel);
         ctx.closePath();
+        // 🔧 MELHORADO: gradiente diagonal no casco (efeito de luz metálica) em vez de cor chapada
+        const tankGradient = ctx.createLinearGradient(this.x, this.y, this.x + this.width, this.y + this.height);
+        tankGradient.addColorStop(0, '#8FA68E');
+        tankGradient.addColorStop(0.5, this.color);
+        tankGradient.addColorStop(1, '#3D4A3C');
+        ctx.fillStyle = tankGradient;
         ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
         
         // Placas de armadura (🔧 NOVO: octógonos chanfrados em vez de quadrados)
         ctx.fillStyle = '#696969';
@@ -553,20 +569,11 @@ class SniperEnemy extends BaseEnemy {
             ctx.shadowColor = '#FFFFFF';
         }
         
-        // Corpo hexagonal
-        ctx.fillStyle = this.color;
+        // Corpo hexagonal (🔧 MELHORADO: usa o helper de polígonos + gradiente + contorno)
         ctx.shadowBlur = 12;
         ctx.shadowColor = this.color;
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI / 3) * i;
-            const x = centerX + Math.cos(angle) * 16;
-            const y = centerY + Math.sin(angle) * 16;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        }
-        ctx.closePath();
-        ctx.fill();
+        fillPolygonGradient(ctx, centerX, centerY, 16, 6, '#C9A0FF', this.color);
+        strokePolygon(ctx, centerX, centerY, 16, 6, 'rgba(0,0,0,0.4)', 1.5);
         
         // Núcleo (🔧 NOVO: pentágono em vez de círculo)
         ctx.fillStyle = '#BA55D3';
@@ -713,9 +720,13 @@ class KamikazeEnemy extends BaseEnemy {
         }
         
         // Corpo pulsante (🔧 NOVO: gema de 6 pontas em vez de círculo — reforça o visual de "bomba instável")
-        ctx.fillStyle = this.color;
         ctx.shadowBlur = 15 + Math.abs(pulseSize);
         ctx.shadowColor = this.color;
+        const kamiGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 14 + pulseSize);
+        kamiGradient.addColorStop(0, '#FFE066');
+        kamiGradient.addColorStop(0.5, this.color);
+        kamiGradient.addColorStop(1, '#5A0000');
+        ctx.fillStyle = kamiGradient;
         drawGemPath(ctx, centerX, centerY, 14 + pulseSize, 9 + pulseSize * 0.6, 6, this.animationFrame * 0.03);
         ctx.fill();
         
@@ -870,10 +881,10 @@ class ParasiteEnemy extends BaseEnemy {
         });
         
         // Corpo orgânico (🔧 NOVO: heptágono irregular em vez de círculo)
-        ctx.fillStyle = this.color;
         ctx.shadowBlur = 10;
         ctx.shadowColor = this.color;
-        fillPolygon(ctx, centerX, centerY, 11, 7, this.animationFrame * 0.02);
+        fillPolygonGradient(ctx, centerX, centerY, 11, 7, '#B8FF6B', this.color, this.animationFrame * 0.02);
+        strokePolygon(ctx, centerX, centerY, 11, 7, 'rgba(0,0,0,0.35)', 1, this.animationFrame * 0.02);
         
         // Membrana pulsante (🔧 NOVO: hexágono)
         ctx.fillStyle = 'rgba(127, 255, 0, 0.5)';
@@ -1022,6 +1033,7 @@ class SummonerEnemy extends BaseEnemy {
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#FFD700';
         fillPolygon(ctx, centerX, centerY, 15, 8, this.animationFrame * 0.02);
+        strokePolygon(ctx, centerX, centerY, 15, 8, 'rgba(255,215,0,0.5)', 1.5, this.animationFrame * 0.02);
         
         // Olho místico (🔧 NOVO: hexágono)
         ctx.fillStyle = '#FF00FF';

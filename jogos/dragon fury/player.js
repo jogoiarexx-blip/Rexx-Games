@@ -7,7 +7,7 @@ const dragon = {
     height: 50,
     speed: 6,
     color: '#FF6B35',
-    fireRate: 200,
+    fireRate: 500,
     lastShot: 0,
     invulnerable: false,
     invulnerableTimer: 0,
@@ -443,11 +443,17 @@ const dragon = {
     
     shootFireball() {
         const currentTime = Date.now();
-        let fireRate = this.fireRate - (upgrades.firepower.level * 30);
+        let fireRate = this.fireRate - (upgrades.firepower.level * 75);
         
         if (gameStats.powerUpActive === 'rapid_fire') {
             fireRate = fireRate / 3;
         }
+        
+        // 🔧 AJUSTE: intervalo mínimo entre tiros, mesmo no nível máximo de
+        // "Poder do Fogo" ou com o power-up rapid_fire ativo — evita que o
+        // tiro fique rápido demais. (base e mínimo escalados para -60% de
+        // tiros por segundo em relação à versão anterior)
+        fireRate = Math.max(fireRate, 250);
         
         if (currentTime - this.lastShot < fireRate) return;
         
@@ -456,7 +462,10 @@ const dragon = {
         // 🔧 NOVO: efeito sonoro de tiro
         if (typeof audioSystem !== 'undefined') audioSystem.playShoot();
         
-        const fireballSpeed = 12;
+        // 🔧 AJUSTE: base ainda mais lenta (era 12 → 8 → 5 → agora 2),
+        // deixando bastante espaço de progressão no upgrade "Velocidade
+        // do Tiro" (+2 por nível, até 5 níveis = até +10 no total).
+        const fireballSpeed = 2 + (upgrades.bulletSpeed.level * 2);
         const fireballSize = 10 + (upgrades.firepower.level * 2);
         let damage = gameStats.firepower * 10;
         
@@ -465,82 +474,41 @@ const dragon = {
             damage *= 2;
         }
         
-        // Tiro central
-        gameEntities.fireballs.push({
-            x: this.x + this.width / 2 - fireballSize / 2,
-            y: this.y - 10,
-            width: fireballSize,
-            height: fireballSize,
-            speed: fireballSpeed,
-            damage: damage,
-            type: 'player'
-        });
-        
-        // Tiros múltiplos baseado no upgrade
+        // 🔧 CORRIGIDO: Tiro Múltiplo agora aumenta 1 projétil por nível
+        // comprado (nível 1 = 2 tiros, nível 2 = 3 tiros, nível 3 = 4
+        // tiros), batendo com a descrição "Nx projéteis" que já aparecia
+        // no painel de upgrades. Antes, o nível 1 já saltava direto para
+        // 3 tiros de uma vez.
+        //
+        // Todos os tiros (incluindo o "central") são gerados numa faixa
+        // simétrica em torno do dragão, sem nenhum "vx" (velocidade
+        // lateral) - eles só nascem deslocados horizontalmente e sobem
+        // retos, então vão para frente (não mais em diagonal/lateral) e
+        // ficam espaçados o suficiente (largura do projétil + folga) pra
+        // nunca se sobrepor.
         const multishotLevel = upgrades.multishot.level;
+        let totalShots = 1 + multishotLevel;
         
-        if (multishotLevel >= 1) {
+        // Power-up Tiro Rápido: mais 2 projéteis extras temporários
+        if (gameStats.powerUpActive === 'rapid_fire') {
+            totalShots += 2;
+        }
+        
+        const spacing = fireballSize + 6; // folga para não sobrepor
+        const centerOffset = (totalShots - 1) / 2;
+        
+        for (let i = 0; i < totalShots; i++) {
+            const offsetX = (i - centerOffset) * spacing;
+            
             gameEntities.fireballs.push({
-                x: this.x + this.width / 2 - fireballSize / 2,
+                x: this.x + this.width / 2 - fireballSize / 2 + offsetX,
                 y: this.y - 10,
                 width: fireballSize,
                 height: fireballSize,
                 speed: fireballSpeed,
                 damage: damage,
-                type: 'player',
-                vx: -3
+                type: 'player'
             });
-            gameEntities.fireballs.push({
-                x: this.x + this.width / 2 - fireballSize / 2,
-                y: this.y - 10,
-                width: fireballSize,
-                height: fireballSize,
-                speed: fireballSpeed,
-                damage: damage,
-                type: 'player',
-                vx: 3
-            });
-        }
-        
-        if (multishotLevel >= 2) {
-            gameEntities.fireballs.push({
-                x: this.x - 10,
-                y: this.y + this.height / 2,
-                width: fireballSize,
-                height: fireballSize,
-                speed: fireballSpeed * 0.7,
-                damage: damage,
-                type: 'player',
-                vx: -5,
-                vy: -2
-            });
-            gameEntities.fireballs.push({
-                x: this.x + this.width + 10,
-                y: this.y + this.height / 2,
-                width: fireballSize,
-                height: fireballSize,
-                speed: fireballSpeed * 0.7,
-                damage: damage,
-                type: 'player',
-                vx: 5,
-                vy: -2
-            });
-        }
-        
-        if (multishotLevel >= 3 || gameStats.powerUpActive === 'rapid_fire') {
-            for (let i = -2; i <= 2; i++) {
-                if (i === 0) continue;
-                gameEntities.fireballs.push({
-                    x: this.x + this.width / 2 - fireballSize / 2,
-                    y: this.y - 10,
-                    width: fireballSize,
-                    height: fireballSize,
-                    speed: fireballSpeed,
-                    damage: damage,
-                    type: 'player',
-                    vx: i * 2
-                });
-            }
         }
     },
     

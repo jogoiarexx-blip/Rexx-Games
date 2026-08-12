@@ -228,6 +228,10 @@ const collisionSystem = {
                 if (destroyed) {
                     // Boss derrotado - completar fase
                     game.completeStage();
+                    // 🔧 BUGFIX: para de processar fireballs restantes contra
+                    // este boss (já destruído) neste frame - ver comentário
+                    // em BaseBoss.destroyed (boss-system.js).
+                    break;
                 }
             }
         }
