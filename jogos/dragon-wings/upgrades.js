@@ -78,6 +78,8 @@ const upgradeManager = {
                 return `+${(upgrade.level * 30).toFixed(0)}% velocidade`;
             case 'multishot':
                 return `${upgrade.level + 1}x projéteis`;
+            case 'bulletSpeed':
+                return `+${upgrade.level * 2} vel. do tiro`;
             case 'shield':
                 return `-${(upgrade.level * 15).toFixed(0)}% dano recebido`;
             case 'escorts':

@@ -117,12 +117,23 @@ const ui = {
         this.renderUpgrades();
     },
     
+    // ✨ NOVO: abrir upgrades a partir do seletor de fase (tela de fase
+    // completa), permitindo gastar as moedas ganhas antes de continuar.
+    showUpgradesFromStageComplete() {
+        document.getElementById('stage-complete').style.display = 'none';
+        document.getElementById('upgrades-panel').style.display = 'block';
+        this.renderUpgrades();
+    },
+    
     closeUpgrades() {
         document.getElementById('upgrades-panel').style.display = 'none';
         if (gameData.gameState === 'menu') {
             document.getElementById('main-menu').style.display = 'block';
         } else if (gameData.gameState === 'paused') {
             document.getElementById('pause-menu').style.display = 'block';
+        } else if (gameData.gameState === 'stage_complete') {
+            // Voltar para o seletor de fase (pontuação/rank já calculados)
+            document.getElementById('stage-complete').style.display = 'block';
         }
     },
     
@@ -186,7 +197,7 @@ Fase 1: Céu Sereno - Derrote 20 inimigos
 Fase 2: Tempestade Iminente - Derrote 30 inimigos
 Fase 3: Fúria Ardente - Derrote 40 inimigos
 Fase 4: Abismo Sombrio - Derrote 50 inimigos
-Fase 5: Batalha Final - Derrote 60 inimigos
+Fase 5: Invasão Cósmica - Derrote 60 inimigos
 
 💥 TIPOS DE INIMIGOS:
 ━━━━━━━━━━━━━━━━━━━━━━
@@ -256,14 +267,10 @@ Fase 5: Batalha Final - Derrote 60 inimigos
     showStageComplete() {
         console.log('🎉 Mostrando tela de Stage Complete...');
         
-        // 🔧 BUGFIX CRÍTICO: Limpar timers ANTES de criar novos
-        if (gameData.stageCompleteCountdown) {
-            console.log('  🧹 Limpando contador regressivo anterior...');
-            clearInterval(gameData.stageCompleteCountdown);
-            gameData.stageCompleteCountdown = null;
-        }
-        
-        const stage = stages[gameData.currentStage];
+        // 🔧 BUGFIX: usar phaseSystem.phases (fonte única de verdade, 5 fases)
+        // em vez de stages[] (data.js, só tinha 5 fases e travava/crashava
+        // ao chegar na Fase 6 porque stages[6] não existia).
+        const stage = phaseSystem.phases[gameData.currentStage];
         document.getElementById('stage-complete-title').textContent = `Fase ${gameData.currentStage} Completa!`;
         document.getElementById('stage-complete-name').textContent = stage.name;
         document.getElementById('stage-complete-score').textContent = gameStats.score;
@@ -344,67 +351,23 @@ Fase 5: Batalha Final - Derrote 60 inimigos
             }
         }
         
-        const stageCompleteDiv = document.getElementById('stage-complete');
-        stageCompleteDiv.style.display = 'block';
-        
-        // Adicionar ou atualizar contador regressivo
-        let countdownElement = document.getElementById('stage-complete-countdown');
-        if (!countdownElement) {
-            countdownElement = document.createElement('p');
-            countdownElement.id = 'stage-complete-countdown';
-            countdownElement.className = 'stage-complete-countdown';
-            countdownElement.style.cssText = 'font-size: 24px; color: #FFD700; margin-top: 20px; font-weight: bold;';
-            
-            const hintElement = document.querySelector('.stage-complete-hint');
-            if (hintElement) {
-                hintElement.parentNode.insertBefore(countdownElement, hintElement);
-            } else {
-                stageCompleteDiv.appendChild(countdownElement);
-            }
+        // ✨ NOVO: seletor de fase. Se essa era a última fase (fase máxima
+        // implementada), o botão "Próxima Fase" vira "Ver Resultado Final"
+        // (nextStage() já sabe chamar gameComplete() nesse caso). Repetir
+        // fase e comprar upgrade continuam disponíveis normalmente.
+        const nextBtn = document.getElementById('stage-complete-next-btn');
+        if (nextBtn) {
+            const isLastPhase = gameData.currentStage >= phaseSystem.maxPhases;
+            nextBtn.textContent = isLastPhase ? '🏆 Ver Resultado Final' : '▶️ Próxima Fase';
         }
         
-        // 🔧 BUGFIX: Criar interval E guardar ATOMICAMENTE
-        let countdown = 5;
-        countdownElement.textContent = `Próxima fase em: ${countdown}s`;
-        
-        console.log('  ⏰ Criando novo contador regressivo...');
-        gameData.stageCompleteCountdown = setInterval(() => {
-            countdown--;
-            if (countdown > 0) {
-                countdownElement.textContent = `Próxima fase em: ${countdown}s`;
-            } else {
-                countdownElement.textContent = 'Iniciando próxima fase...';
-                
-                // 🔧 BUGFIX: Limpar o próprio interval quando chegar a 0
-                if (gameData.stageCompleteCountdown) {
-                    clearInterval(gameData.stageCompleteCountdown);
-                    gameData.stageCompleteCountdown = null;
-                }
-            }
-        }, 1000);
-        
-        console.log('  ✅ Contador regressivo criado e guardado');
+        const stageCompleteDiv = document.getElementById('stage-complete');
+        stageCompleteDiv.style.display = 'block';
     },
     
     hideStageComplete() {
         console.log('🔄 Escondendo tela de Stage Complete...');
-        
-        // 🔧 BUGFIX: Limpar contador regressivo
-        if (gameData.stageCompleteCountdown) {
-            console.log('  🧹 Limpando contador regressivo...');
-            clearInterval(gameData.stageCompleteCountdown);
-            gameData.stageCompleteCountdown = null;
-        }
-        
-        // 🔧 BUGFIX: Limpar timer de auto-avanço também (redundância segura)
-        if (gameData.stageCompleteTimer) {
-            console.log('  🧹 Limpando timer de auto-avanço...');
-            clearTimeout(gameData.stageCompleteTimer);
-            gameData.stageCompleteTimer = null;
-        }
-        
         document.getElementById('stage-complete').style.display = 'none';
-        console.log('  ✅ Tela escondida e timers limpos');
     },
     
     showGameComplete() {

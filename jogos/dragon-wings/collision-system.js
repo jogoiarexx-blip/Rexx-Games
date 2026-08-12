@@ -75,6 +75,8 @@ const collisionSystem = {
                 if (enemy.type !== 'tank' && enemy.type !== 'parasite') {
                     enemy.destroy();
                     gameEntities.enemies.splice(index, 1);
+                    // 🔧 NOVO: efeito sonoro de explosão
+                    if (typeof audioSystem !== 'undefined') audioSystem.playExplosion();
                 }
             }
         }
@@ -83,7 +85,9 @@ const collisionSystem = {
     checkPlayerVsEnemyFireballs() {
         if (dragon.invulnerable) return;
         
-        gameEntities.fireballs.forEach((fb, index) => {
+        // CORREÇÃO: Usar loop reverso para evitar pular elementos ao usar splice
+        for (let index = gameEntities.fireballs.length - 1; index >= 0; index--) {
+            const fb = gameEntities.fireballs[index];
             if (fb.type === 'enemy' && this.checkCircle(dragon, fb)) {
                 const damage = fb.damage;
                 dragon.takeDamage(damage);
@@ -98,7 +102,7 @@ const collisionSystem = {
                 // Efeito de impacto
                 this.createImpactEffect(fb.x, fb.y, fb.color || '#FF0000');
             }
-        });
+        }
     },
     
     checkPlayerVsCoins() {
@@ -113,8 +117,16 @@ const collisionSystem = {
                 localStorage.setItem('dragonCoins', gameStats.coins);
                 localStorage.setItem('dragonTotalCoins', gameStats.totalCoins);
                 
+                // 🔧 NOVO: efeito sonoro de moeda
+                if (typeof audioSystem !== 'undefined') audioSystem.playCoin();
+                
                 // Efeito visual
                 this.createCollectEffect(coin.x, coin.y, '#FFD700');
+                
+                // ✨ MELHORIA: Pulso/partículas do coin-effects.js ao coletar
+                if (typeof coinEffects !== 'undefined') {
+                    coinEffects.onCollect(coin.x + coin.width / 2, coin.y + coin.height / 2, gameData.ctx);
+                }
                 
                 gameEntities.coins.splice(index, 1);
             }
@@ -133,8 +145,16 @@ const collisionSystem = {
                 
                 this.activatePowerUp(powerup.type);
                 
+                // 🔧 NOVO: efeito sonoro de power-up
+                if (typeof audioSystem !== 'undefined') audioSystem.playPowerup();
+                
                 // Efeito visual
                 this.createCollectEffect(powerup.x, powerup.y, '#00FF00');
+                
+                // ✨ MELHORIA: Onda de choque/partículas do powerup-effects.js ao coletar
+                if (typeof powerUpEffects !== 'undefined') {
+                    powerUpEffects.onCollect(powerup.x + powerup.width / 2, powerup.y + powerup.height / 2, powerup.type, gameData.ctx);
+                }
                 
                 gameEntities.powerups.splice(index, 1);
             }
@@ -157,6 +177,12 @@ const collisionSystem = {
                     
                     // Aplicar dano
                     const destroyed = enemy.takeDamage(fb.damage);
+                    
+                    // 🔧 NOVO: efeito sonoro de acerto/explosão
+                    if (typeof audioSystem !== 'undefined') {
+                        if (destroyed) audioSystem.playExplosion();
+                        else audioSystem.playHit();
+                    }
                     
                     if (destroyed) {
                         // ✨ RANK SYSTEM: Registrar kill
@@ -182,21 +208,33 @@ const collisionSystem = {
         
         const boss = gameEntities.boss;
         
-        gameEntities.fireballs.forEach((fb, index) => {
-            if (fb.type !== 'player') return;
+        // CORREÇÃO: Usar loop reverso para evitar pular elementos ao usar splice
+        for (let index = gameEntities.fireballs.length - 1; index >= 0; index--) {
+            const fb = gameEntities.fireballs[index];
+            if (fb.type !== 'player') continue;
             
             if (this.checkCircle(fb, boss)) {
                 const destroyed = boss.takeDamage(fb.damage);
                 
+                gameEntities.fireballs.splice(index, 1);
+                this.createImpactEffect(fb.x, fb.y, fb.color || '#FF6B35');
+                
+                // 🔧 NOVO: efeito sonoro de acerto/explosão no boss
+                if (typeof audioSystem !== 'undefined') {
+                    if (destroyed) audioSystem.playBossExplosion();
+                    else audioSystem.playHit();
+                }
+                
                 if (destroyed) {
                     // Boss derrotado - completar fase
                     game.completeStage();
+                    // 🔧 BUGFIX: para de processar fireballs restantes contra
+                    // este boss (já destruído) neste frame - ver comentário
+                    // em BaseBoss.destroyed (boss-system.js).
+                    break;
                 }
-                
-                gameEntities.fireballs.splice(index, 1);
-                this.createImpactEffect(fb.x, fb.y, fb.color || '#FF6B35');
             }
-        });
+        }
     },
     
     checkPlayerVsBoss() {

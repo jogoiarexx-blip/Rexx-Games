@@ -257,6 +257,9 @@ const parallaxSystem = {
                 
             case 'orb':
                 particle.size = Math.random() * 8 + 4;
+                // 🔧 BUGFIX: guardamos o tamanho "base" separado do tamanho
+                // usado pra desenhar. Ver correção em updateParticleBehavior.
+                particle.baseSize = particle.size;
                 particle.color = `rgba(${100 + Math.random() * 155}, 0, ${100 + Math.random() * 155}, 0.5)`;
                 particle.pulsePhase = Math.random() * Math.PI * 2;
                 break;
@@ -328,8 +331,21 @@ const parallaxSystem = {
                 break;
                 
             case 'orb':
+                // 🔧 BUGFIX CRÍTICO (causa real do "fase 4 não inicia"):
+                // este código fazia `particle.size = particle.size + seno(...)`
+                // TODO frame, ou seja, somava em cima do próprio valor
+                // anterior a cada quadro, sem nenhum limite - um "random
+                // walk" que ia crescendo ou encolhendo sem parar. Depois de
+                // alguns segundos, o tamanho de alguma bolinha (das 20
+                // "spectral_orbs" que só existem na fase 4) acabava indo
+                // abaixo de zero, e `ctx.arc(x, y, tamanhoNegativo, ...)`
+                // lança uma exceção ("radius provided is negative") -
+                // travando o jogo inteiro exatamente ao entrar na fase 4.
+                // A correção: pulsar sempre em torno do tamanho ORIGINAL
+                // (baseSize), nunca acumulando, e nunca deixando passar de
+                // um mínimo positivo.
                 particle.pulsePhase += 0.08;
-                particle.size = (particle.size || 4) + Math.sin(particle.pulsePhase) * 2;
+                particle.size = Math.max(1, particle.baseSize + Math.sin(particle.pulsePhase) * 2);
                 break;
         }
         

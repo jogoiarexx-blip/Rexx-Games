@@ -198,11 +198,12 @@ class BasicEnemy extends BaseEnemy {
             ctx.shadowColor = '#FFFFFF';
         }
         
-        // Asas
+        // Asas (🔧 NOVO: pipa de 4 pontas em vez de triângulo simples — mais facetas)
         ctx.fillStyle = '#A52A2A';
         ctx.beginPath();
         ctx.moveTo(centerX - 15, centerY);
         ctx.lineTo(centerX - 25 - pulse, centerY - 10);
+        ctx.lineTo(centerX - 32 - pulse, centerY);
         ctx.lineTo(centerX - 20 - pulse, centerY + 10);
         ctx.closePath();
         ctx.fill();
@@ -210,32 +211,33 @@ class BasicEnemy extends BaseEnemy {
         ctx.beginPath();
         ctx.moveTo(centerX + 15, centerY);
         ctx.lineTo(centerX + 25 + pulse, centerY - 10);
+        ctx.lineTo(centerX + 32 + pulse, centerY);
         ctx.lineTo(centerX + 20 + pulse, centerY + 10);
         ctx.closePath();
         ctx.fill();
         
-        // Corpo
-        ctx.fillStyle = this.color;
+        // Corpo (🔧 MELHORADO: gradiente radial + contorno em vez de cor chapada)
         ctx.shadowBlur = 10;
         ctx.shadowColor = this.color;
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, 15, 18, 0, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygonGradient(ctx, centerX, centerY, 17, 7, '#FF6B47', this.color, -Math.PI / 2);
+        strokePolygon(ctx, centerX, centerY, 17, 7, 'rgba(0,0,0,0.4)', 1.5, -Math.PI / 2);
         
-        // Detalhes
+        // 🔧 NOVO: anel externo facetado (contorno decagonal) para reforçar o visual poligonal
+        ctx.strokeStyle = 'rgba(255, 69, 0, 0.6)';
+        ctx.lineWidth = 1.5;
+        drawPolygonPath(ctx, centerX, centerY, 20, 10, this.animationFrame * 0.02);
+        ctx.stroke();
+        
+        // Detalhes (🔧 NOVO: pentágono interno)
         ctx.fillStyle = '#FF4500';
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY + 5, 10, 12, 0, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygon(ctx, centerX, centerY + 5, 11, 5, -Math.PI / 2);
         
-        // Olhos
+        // Olhos (🔧 NOVO: losangos em vez de círculos)
         ctx.fillStyle = '#FFD700';
         ctx.shadowBlur = 5;
         ctx.shadowColor = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(centerX - 5, centerY - 5, 3, 0, Math.PI * 2);
-        ctx.arc(centerX + 5, centerY - 5, 3, 0, Math.PI * 2);
-        ctx.fill();
+        fillDiamond(ctx, centerX - 5, centerY - 5, 3);
+        fillDiamond(ctx, centerX + 5, centerY - 5, 3);
         
         ctx.restore();
         this.drawHealthBar(ctx);
@@ -304,7 +306,7 @@ class ZigZagEnemy extends BaseEnemy {
             ctx.shadowColor = '#FFFFFF';
         }
         
-        // Corpo triangular
+        // Corpo (🔧 NOVO: pentágono em forma de flecha em vez de triângulo simples — mais uma face)
         const rotation = Math.sin(this.animationFrame * 0.2);
         ctx.translate(centerX, centerY);
         ctx.rotate(rotation * 0.3);
@@ -314,26 +316,34 @@ class ZigZagEnemy extends BaseEnemy {
         ctx.shadowColor = this.color;
         ctx.beginPath();
         ctx.moveTo(0, -20);
-        ctx.lineTo(-15, 15);
-        ctx.lineTo(15, 15);
+        ctx.lineTo(-15, 8);
+        ctx.lineTo(-8, 15);
+        ctx.lineTo(8, 15);
+        ctx.lineTo(15, 8);
         ctx.closePath();
+        // 🔧 MELHORADO: gradiente linear no corpo em flecha em vez de cor chapada
+        const zzGradient = ctx.createLinearGradient(0, -20, 0, 15);
+        zzGradient.addColorStop(0, '#FFB6C1');
+        zzGradient.addColorStop(1, this.color);
+        ctx.fillStyle = zzGradient;
         ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
         
-        // Núcleo
+        // Núcleo (🔧 NOVO: hexágono em vez de círculo)
         ctx.fillStyle = '#FFD700';
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(0, 0, 6, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygon(ctx, 0, 0, 6, 6, this.animationFrame * 0.05);
         
-        // Lâminas
+        // Lâminas (🔧 NOVO: losangos facetados em vez de retângulos lisos)
         for (let i = 0; i < 3; i++) {
             const angle = (Math.PI * 2 / 3) * i + this.animationFrame * 0.1;
             ctx.save();
             ctx.rotate(angle);
             ctx.fillStyle = '#FF69B4';
-            ctx.fillRect(-2, -15, 4, 10);
+            fillPolygon(ctx, 0, -10, 6, 4, 0);
             ctx.restore();
         }
         
@@ -397,31 +407,50 @@ class TankEnemy extends BaseEnemy {
             ctx.shadowColor = '#FFA500';
         }
         
-        // Corpo principal blindado
-        ctx.fillStyle = this.color;
+        // Corpo principal blindado (🔧 NOVO: casco octogonal chanfrado em vez de retângulo reto)
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#000';
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        const bevel = 10;
+        ctx.beginPath();
+        ctx.moveTo(this.x + bevel, this.y);
+        ctx.lineTo(this.x + this.width - bevel, this.y);
+        ctx.lineTo(this.x + this.width, this.y + bevel);
+        ctx.lineTo(this.x + this.width, this.y + this.height - bevel);
+        ctx.lineTo(this.x + this.width - bevel, this.y + this.height);
+        ctx.lineTo(this.x + bevel, this.y + this.height);
+        ctx.lineTo(this.x, this.y + this.height - bevel);
+        ctx.lineTo(this.x, this.y + bevel);
+        ctx.closePath();
+        // 🔧 MELHORADO: gradiente diagonal no casco (efeito de luz metálica) em vez de cor chapada
+        const tankGradient = ctx.createLinearGradient(this.x, this.y, this.x + this.width, this.y + this.height);
+        tankGradient.addColorStop(0, '#8FA68E');
+        tankGradient.addColorStop(0.5, this.color);
+        tankGradient.addColorStop(1, '#3D4A3C');
+        ctx.fillStyle = tankGradient;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
         
-        // Placas de armadura
+        // Placas de armadura (🔧 NOVO: octógonos chanfrados em vez de quadrados)
         ctx.fillStyle = '#696969';
-        const armorPlates = [
-            [this.x + 5, this.y + 5, 15, 15],
-            [this.x + this.width - 20, this.y + 5, 15, 15],
-            [this.x + 5, this.y + this.height - 20, 15, 15],
-            [this.x + this.width - 20, this.y + this.height - 20, 15, 15]
+        ctx.strokeStyle = '#2F4F4F';
+        ctx.lineWidth = 2;
+        const armorCenters = [
+            [this.x + 12, this.y + 12],
+            [this.x + this.width - 12, this.y + 12],
+            [this.x + 12, this.y + this.height - 12],
+            [this.x + this.width - 12, this.y + this.height - 12]
         ];
-        armorPlates.forEach(plate => {
-            ctx.fillRect(...plate);
-            ctx.strokeStyle = '#2F4F4F';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(...plate);
+        armorCenters.forEach(([px, py]) => {
+            drawPolygonPath(ctx, px, py, 10, 8, Math.PI / 8);
+            ctx.fill();
+            ctx.stroke();
         });
         
-        // Torre central
+        // Torre central (🔧 NOVO: octógono blindado em vez de círculo)
         ctx.fillStyle = '#363636';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+        drawPolygonPath(ctx, centerX, centerY, 12, 8);
         ctx.fill();
         ctx.strokeStyle = '#1C1C1C';
         ctx.lineWidth = 2;
@@ -431,15 +460,13 @@ class TankEnemy extends BaseEnemy {
         ctx.fillStyle = '#2F4F4F';
         ctx.fillRect(centerX - 3, centerY - 18, 6, 20);
         
-        // Luzes de alerta
+        // Luzes de alerta (🔧 NOVO: losangos em vez de círculos)
         const lightColor = Math.floor(this.animationFrame / 30) % 2 === 0 ? '#FF0000' : '#8B0000';
         ctx.fillStyle = lightColor;
         ctx.shadowBlur = 8;
         ctx.shadowColor = lightColor;
-        ctx.beginPath();
-        ctx.arc(centerX - 15, centerY - 15, 3, 0, Math.PI * 2);
-        ctx.arc(centerX + 15, centerY - 15, 3, 0, Math.PI * 2);
-        ctx.fill();
+        fillDiamond(ctx, centerX - 15, centerY - 15, 3);
+        fillDiamond(ctx, centerX + 15, centerY - 15, 3);
         
         ctx.restore();
         this.drawHealthBar(ctx);
@@ -530,8 +557,8 @@ class SniperEnemy extends BaseEnemy {
             ctx.lineWidth = 3;
             ctx.shadowBlur = 15 * chargePercent;
             ctx.shadowColor = '#9370DB';
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, 20 + chargePercent * 5, 0, Math.PI * 2);
+            // 🔧 NOVO: anel de mira em dodecágono facetado em vez de círculo
+            drawPolygonPath(ctx, centerX, centerY, 20 + chargePercent * 5, 12, this.animationFrame * 0.04);
             ctx.stroke();
         }
         
@@ -542,26 +569,21 @@ class SniperEnemy extends BaseEnemy {
             ctx.shadowColor = '#FFFFFF';
         }
         
-        // Corpo hexagonal
-        ctx.fillStyle = this.color;
+        // Corpo hexagonal (🔧 MELHORADO: usa o helper de polígonos + gradiente + contorno)
         ctx.shadowBlur = 12;
         ctx.shadowColor = this.color;
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI / 3) * i;
-            const x = centerX + Math.cos(angle) * 16;
-            const y = centerY + Math.sin(angle) * 16;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        }
-        ctx.closePath();
-        ctx.fill();
+        fillPolygonGradient(ctx, centerX, centerY, 16, 6, '#C9A0FF', this.color);
+        strokePolygon(ctx, centerX, centerY, 16, 6, 'rgba(0,0,0,0.4)', 1.5);
         
-        // Núcleo
+        // Núcleo (🔧 NOVO: pentágono em vez de círculo)
         ctx.fillStyle = '#BA55D3';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygon(ctx, centerX, centerY, 8, 5, -Math.PI / 2);
+        
+        // 🔧 NOVO: anel externo facetado (dodecágono) para reforçar o corpo cristalino
+        ctx.strokeStyle = 'rgba(147, 112, 219, 0.5)';
+        ctx.lineWidth = 1.5;
+        drawPolygonPath(ctx, centerX, centerY, 20, 12, -this.animationFrame * 0.02);
+        ctx.stroke();
         
         // Mira laser
         ctx.strokeStyle = '#FF0000';
@@ -573,7 +595,7 @@ class SniperEnemy extends BaseEnemy {
         ctx.stroke();
         ctx.setLineDash([]);
         
-        // Cristais
+        // Cristais (🔧 NOVO: losangos facetados em vez de pontinhos redondos)
         for (let i = 0; i < 3; i++) {
             const angle = (Math.PI * 2 / 3) * i + this.animationFrame * 0.05;
             const x = centerX + Math.cos(angle) * 10;
@@ -581,9 +603,7 @@ class SniperEnemy extends BaseEnemy {
             ctx.fillStyle = '#FFD700';
             ctx.shadowBlur = 5;
             ctx.shadowColor = '#FFD700';
-            ctx.beginPath();
-            ctx.arc(x, y, 2, 0, Math.PI * 2);
-            ctx.fill();
+            fillDiamond(ctx, x, y, 3, angle);
         }
         
         ctx.restore();
@@ -687,7 +707,8 @@ class KamikazeEnemy extends BaseEnemy {
             ctx.shadowBlur = 20;
             ctx.shadowColor = '#FF4500';
             ctx.beginPath();
-            ctx.arc(centerX, centerY, 25 + pulseSize, 0, Math.PI * 2);
+            // 🔧 NOVO: onda de choque em octógono facetado em vez de círculo
+            drawPolygonPath(ctx, centerX, centerY, 25 + pulseSize, 8, -this.animationFrame * 0.05);
             ctx.stroke();
         }
         
@@ -698,21 +719,22 @@ class KamikazeEnemy extends BaseEnemy {
             ctx.shadowColor = '#FFFFFF';
         }
         
-        // Corpo pulsante
-        ctx.fillStyle = this.color;
+        // Corpo pulsante (🔧 NOVO: gema de 6 pontas em vez de círculo — reforça o visual de "bomba instável")
         ctx.shadowBlur = 15 + Math.abs(pulseSize);
         ctx.shadowColor = this.color;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 14 + pulseSize, 0, Math.PI * 2);
+        const kamiGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 14 + pulseSize);
+        kamiGradient.addColorStop(0, '#FFE066');
+        kamiGradient.addColorStop(0.5, this.color);
+        kamiGradient.addColorStop(1, '#5A0000');
+        ctx.fillStyle = kamiGradient;
+        drawGemPath(ctx, centerX, centerY, 14 + pulseSize, 9 + pulseSize * 0.6, 6, this.animationFrame * 0.03);
         ctx.fill();
         
-        // Núcleo instável
+        // Núcleo instável (🔧 NOVO: pentágono em vez de círculo)
         ctx.fillStyle = '#FFD700';
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 7 + pulseSize * 0.5, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygon(ctx, centerX, centerY, 7 + pulseSize * 0.5, 5, -Math.PI / 2);
         
         // Raios de energia
         if (this.activated) {
@@ -851,37 +873,29 @@ class ParasiteEnemy extends BaseEnemy {
             );
             ctx.stroke();
             
-            // Ponta da tentáculo
+            // Ponta da tentáculo (🔧 NOVO: losango em vez de círculo)
             ctx.fillStyle = '#7FFF00';
             ctx.shadowBlur = 5;
             ctx.shadowColor = '#7FFF00';
-            ctx.beginPath();
-            ctx.arc(endX, endY, 2, 0, Math.PI * 2);
-            ctx.fill();
+            fillDiamond(ctx, endX, endY, 2.5, angle);
         });
         
-        // Corpo orgânico
-        ctx.fillStyle = this.color;
+        // Corpo orgânico (🔧 NOVO: heptágono irregular em vez de círculo)
         ctx.shadowBlur = 10;
         ctx.shadowColor = this.color;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 11, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygonGradient(ctx, centerX, centerY, 11, 7, '#B8FF6B', this.color, this.animationFrame * 0.02);
+        strokePolygon(ctx, centerX, centerY, 11, 7, 'rgba(0,0,0,0.35)', 1, this.animationFrame * 0.02);
         
-        // Membrana pulsante
+        // Membrana pulsante (🔧 NOVO: hexágono)
         ctx.fillStyle = 'rgba(127, 255, 0, 0.5)';
         const pulse = Math.sin(this.animationFrame * 0.2) * 2;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 8 + pulse, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygon(ctx, centerX, centerY, 8 + pulse, 6, -this.animationFrame * 0.03);
         
-        // Núcleo
+        // Núcleo (🔧 NOVO: losango)
         ctx.fillStyle = '#FFD700';
         ctx.shadowBlur = 8;
         ctx.shadowColor = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
-        ctx.fill();
+        fillDiamond(ctx, centerX, centerY, 4, this.animationFrame * 0.05);
         
         ctx.restore();
         this.drawHealthBar(ctx);
@@ -975,16 +989,15 @@ class SummonerEnemy extends BaseEnemy {
             ctx.shadowColor = '#FFFFFF';
         }
         
-        // Círculo de invocação
+        // Círculo de invocação (🔧 NOVO: anel em dodecágono facetado em vez de círculo)
         ctx.strokeStyle = `rgba(139, 0, 139, ${Math.sin(this.animationFrame * 0.1) * 0.3 + 0.5})`;
         ctx.lineWidth = 2;
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#8B008B';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 30 + pulse, 0, Math.PI * 2);
+        drawPolygonPath(ctx, centerX, centerY, 30 + pulse, 12, this.animationFrame * 0.015);
         ctx.stroke();
         
-        // Runas orbitantes
+        // Runas orbitantes (🔧 NOVO: hexágonos em vez de quadrados simples)
         this.runes.forEach((rune, i) => {
             const angle = rune.angle + this.animationFrame * 0.02;
             const x = centerX + Math.cos(angle) * (rune.distance + pulse);
@@ -993,11 +1006,7 @@ class SummonerEnemy extends BaseEnemy {
             ctx.fillStyle = '#BA55D3';
             ctx.shadowBlur = 8;
             ctx.shadowColor = '#BA55D3';
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(angle);
-            ctx.fillRect(-3, -3, 6, 6);
-            ctx.restore();
+            fillPolygon(ctx, x, y, 4.5, 6, angle);
         });
         
         // Corpo (pentagrama)
@@ -1015,7 +1024,7 @@ class SummonerEnemy extends BaseEnemy {
         ctx.closePath();
         ctx.fill();
         
-        // Círculo central místico
+        // Círculo central místico (🔧 NOVO: octógono cristalino em vez de círculo)
         const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 15);
         gradient.addColorStop(0, '#FFD700');
         gradient.addColorStop(0.5, '#8B008B');
@@ -1023,17 +1032,14 @@ class SummonerEnemy extends BaseEnemy {
         ctx.fillStyle = gradient;
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 15, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygon(ctx, centerX, centerY, 15, 8, this.animationFrame * 0.02);
+        strokePolygon(ctx, centerX, centerY, 15, 8, 'rgba(255,215,0,0.5)', 1.5, this.animationFrame * 0.02);
         
-        // Olho místico
+        // Olho místico (🔧 NOVO: hexágono)
         ctx.fillStyle = '#FF00FF';
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#FF00FF';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygon(ctx, centerX, centerY, 5, 6, -this.animationFrame * 0.04);
         
         ctx.restore();
         this.drawHealthBar(ctx);

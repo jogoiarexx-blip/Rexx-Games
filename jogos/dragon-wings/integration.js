@@ -21,11 +21,37 @@ const gameIntegration = {
         
         console.log('🔧 Inicializando sistemas avançados...');
         
+        // 🔧 BUGFIX CRÍTICO: gameIntegration.init() roda no DOMContentLoaded
+        // ANTES de game.init() (integration.js registra seu listener antes
+        // de main.js, pela ordem dos <script> no index.html). Isso significa
+        // que gameData.canvas ainda era `null` aqui embaixo, e
+        // parallaxSystem.init(1) quebrava com "Cannot read properties of
+        // null (reading 'width')" — o que interrompia esta função NO MEIO,
+        // antes de chegar em integrateWithGameLoop()/integrateWithDraw()/
+        // integrateWithReset(). Resultado: game.update/draw/reset NUNCA
+        // eram sobrescritos, e o jogo inteiro caía de volta no código antigo
+        // (entities.drawEnemies()/drawCoins(), que só faz ctx.fillRect() —
+        // quadrados lisos, sem forma nenhuma). Garantindo o canvas aqui,
+        // isso não depende mais da ordem de carregamento dos scripts.
+        if (!gameData.canvas) {
+            gameData.canvas = document.getElementById('gameCanvas');
+            gameData.ctx = gameData.canvas.getContext('2d');
+        }
+        
         // Inicializar sistemas
         phaseSystem.init();
         spawnSystem.init();
         rankSystem.init();
         escortManager.init();
+        escortManager.checkAndRestore();
+        
+        // 🔧 BUGFIX: inicializar os sistemas visuais na fase 1 desde o início
+        if (typeof parallaxSystem !== 'undefined') parallaxSystem.init(1);
+        if (typeof phaseEffects !== 'undefined') phaseEffects.init(1);
+        
+        // ✨ MELHORIA: Sistemas visuais de moedas e power-ups (existiam mas nunca eram chamados)
+        if (typeof coinEffects !== 'undefined') coinEffects.init();
+        if (typeof powerUpEffects !== 'undefined') powerUpEffects.init();
         
         // Sobrescrever métodos do jogo original
         this.integrateWithGameLoop();
@@ -42,6 +68,15 @@ const gameIntegration = {
         
         // Sobrescrever update
         game.update = function() {
+            // 🔧 BUGFIX: estes sistemas visuais existiam mas nunca eram
+            // atualizados porque só o update() original (substituído por
+            // este aqui) os chamava. Sem isso, transições entre fases,
+            // parallax e efeitos ambientais (nuvens, raios, fogo, névoa,
+            // warp) ficavam com código morto, nunca executando.
+            if (typeof phaseTransitions !== 'undefined') phaseTransitions.update();
+            if (typeof parallaxSystem !== 'undefined') parallaxSystem.update();
+            if (typeof phaseEffects !== 'undefined') phaseEffects.update();
+            
             // Update do jogador
             dragon.update();
             
@@ -88,13 +123,25 @@ const gameIntegration = {
                 }
             });
             
+            // ✨ MELHORIA: Efeitos visuais 3D/partículas/trail das moedas
+            if (typeof coinEffects !== 'undefined') {
+                coinEffects.update(gameEntities.coins);
+            }
+            
+            // ✨ MELHORIA: Efeitos visuais e magnetismo dos power-ups
+            if (typeof powerUpEffects !== 'undefined') {
+                powerUpEffects.update(gameEntities.powerups, dragon.x + dragon.width / 2, dragon.y + dragon.height / 2);
+            }
+            
             // Update de power-ups
             gameEntities.powerups.forEach(pu => {
                 pu.y += pu.speed;
             });
             
             // Update de partículas
-            gameEntities.particles.forEach((particle, index) => {
+            // CORREÇÃO: loop reverso para não pular partículas ao usar splice
+            for (let index = gameEntities.particles.length - 1; index >= 0; index--) {
+                const particle = gameEntities.particles[index];
                 particle.x += particle.vx;
                 particle.y += particle.vy;
                 particle.life--;
@@ -102,7 +149,17 @@ const gameIntegration = {
                 if (particle.life <= 0) {
                     gameEntities.particles.splice(index, 1);
                 }
-            });
+            }
+            
+            // 🔧 BUGFIX (desempenho): sem limite, um combo grande ou a morte
+            // de um boss (64+ partículas de uma vez, em BaseBoss.destroy())
+            // podiam empilhar centenas de partículas simultâneas e derrubar
+            // o FPS, principalmente em celular. Descarta as mais antigas
+            // (já estão desbotando/somem primeiro mesmo) acima do limite.
+            const MAX_PARTICLES = 250;
+            if (gameEntities.particles.length > MAX_PARTICLES) {
+                gameEntities.particles.splice(0, gameEntities.particles.length - MAX_PARTICLES);
+            }
             
             // Sistema de colisão
             collisionSystem.checkAll();
@@ -141,42 +198,65 @@ const gameIntegration = {
         game.draw = function() {
             const ctx = gameData.ctx;
             
+            // 🔧 BUGFIX: aplicar tremor de câmera durante transições de fase
+            let shakeOffset = { x: 0, y: 0 };
+            if (typeof phaseTransitions !== 'undefined' && phaseTransitions.isInTransition()) {
+                shakeOffset = phaseTransitions.getShakeOffset();
+            }
+            ctx.save();
+            ctx.translate(shakeOffset.x, shakeOffset.y);
+            
             // Fundo da fase
             phaseSystem.drawBackground(ctx);
+            
+            // 🔧 BUGFIX: parallax e efeitos ambientais nunca eram desenhados
+            // porque só o draw() original (substituído por este) os chamava.
+            if (typeof parallaxSystem !== 'undefined') parallaxSystem.draw(ctx);
+            if (typeof phaseEffects !== 'undefined') phaseEffects.draw(ctx);
             
             // Desenhar estrelas
             entities.drawStars();
             
-            // Desenhar moedas
-            gameEntities.coins.forEach(coin => {
-                ctx.fillStyle = '#FFD700';
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#FFD700';
-                ctx.beginPath();
-                ctx.arc(coin.x + coin.width / 2, coin.y + coin.height / 2, 
-                       coin.width / 2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowBlur = 0;
-            });
+            // ✨ MELHORIA: Moedas com efeito 3D, brilho pulsante, partículas e trail
+            if (typeof coinEffects !== 'undefined') {
+                coinEffects.draw(ctx, gameEntities.coins);
+            } else {
+                // Fallback simples caso coin-effects.js não esteja carregado
+                gameEntities.coins.forEach(coin => {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#FFD700';
+                    ctx.beginPath();
+                    ctx.arc(coin.x + coin.width / 2, coin.y + coin.height / 2, 
+                           coin.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+            }
             
-            // Desenhar power-ups
-            gameEntities.powerups.forEach(pu => {
-                const icons = {
-                    'health': '❤️',
-                    'rapid_fire': '⚡',
-                    'shield': '🛡️',
-                    'bomb': '💣'
-                };
-                
-                ctx.fillStyle = '#00FF00';
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#00FF00';
-                ctx.fillRect(pu.x, pu.y, pu.width, pu.height);
-                
-                ctx.font = '24px Arial';
-                ctx.fillText(icons[pu.type] || '?', pu.x + 3, pu.y + 22);
-                ctx.shadowBlur = 0;
-            });
+            // ✨ MELHORIA: Power-ups com ícones customizados, glow, partículas e magnetismo
+            if (typeof powerUpEffects !== 'undefined') {
+                powerUpEffects.draw(ctx, gameEntities.powerups);
+            } else {
+                // Fallback simples caso powerup-effects.js não esteja carregado
+                gameEntities.powerups.forEach(pu => {
+                    const icons = {
+                        'health': '❤️',
+                        'rapid_fire': '⚡',
+                        'shield': '🛡️',
+                        'bomb': '💣'
+                    };
+                    
+                    ctx.fillStyle = '#00FF00';
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#00FF00';
+                    ctx.fillRect(pu.x, pu.y, pu.width, pu.height);
+                    
+                    ctx.font = '24px Arial';
+                    ctx.fillText(icons[pu.type] || '?', pu.x + 3, pu.y + 22);
+                    ctx.shadowBlur = 0;
+                });
+            }
             
             // Desenhar inimigos
             gameEntities.enemies.forEach(enemy => enemy.draw(ctx));
@@ -194,12 +274,26 @@ const gameIntegration = {
             // Desenhar jogador
             dragon.draw();
             
-            // Desenhar fireballs
+            // Desenhar fireballs (🔧 MELHORADO: cristal alongado orientado pela direção, em vez de quadrado)
             gameEntities.fireballs.forEach(fb => {
-                ctx.fillStyle = fb.color || (fb.type === 'player' ? '#FF6B35' : '#FF0000');
+                const centerX = fb.x + fb.width / 2;
+                const centerY = fb.y + fb.height / 2;
+                
+                // Direção do movimento (usa vx/vy quando existem; senão, cima/baixo conforme o tipo)
+                let angle;
+                if (fb.vx !== undefined || fb.vy !== undefined) {
+                    angle = Math.atan2(fb.vy || 0, fb.vx || 0);
+                } else {
+                    angle = fb.type === 'player' ? -Math.PI / 2 : Math.PI / 2;
+                }
+                
+                const isPlayer = fb.type === 'player';
+                const colorCore = fb.color || (isPlayer ? '#FFF3B0' : '#FFB0B0');
+                const colorEdge = fb.color || (isPlayer ? '#FF6B35' : '#FF0000');
+                
                 ctx.shadowBlur = 8;
-                ctx.shadowColor = ctx.fillStyle;
-                ctx.fillRect(fb.x, fb.y, fb.width, fb.height);
+                ctx.shadowColor = colorEdge;
+                drawFireballShape(ctx, centerX, centerY, fb.width / 2, angle, colorCore, colorEdge);
                 ctx.shadowBlur = 0;
             });
             
@@ -212,6 +306,13 @@ const gameIntegration = {
                 ctx.fill();
                 ctx.globalAlpha = 1;
             });
+            
+            // 🔧 BUGFIX: fechar o translate do tremor ANTES do HUD/overlay,
+            // senão o HUD também tremeria durante transições de fase.
+            ctx.restore();
+            
+            // Overlay de transição entre fases (sem tremor)
+            if (typeof phaseTransitions !== 'undefined') phaseTransitions.draw(ctx);
             
             // HUD Sistema
             hudSystem.draw(ctx);
@@ -253,6 +354,10 @@ const gameIntegration = {
             spawnSystem.init();
             rankSystem.init();
             escortManager.init();
+            
+            // 🔧 BUGFIX: reiniciar sistemas visuais na fase 1 ao reiniciar o jogo
+            if (typeof parallaxSystem !== 'undefined') parallaxSystem.init(1);
+            if (typeof phaseEffects !== 'undefined') phaseEffects.init(1);
             
             // Aplicar upgrade de escolta se comprado
             if (upgrades.escorts && upgrades.escorts.level > 0) {

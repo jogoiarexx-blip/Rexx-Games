@@ -50,6 +50,30 @@ const rankSystem = {
         this.currentRun.powerUpsCollected++;
     },
     
+    // Inicializar/resetar tracking (usado por integration.js)
+    init() {
+        this.startPhase();
+    },
+    
+    // Rank em tempo real, para exibir na HUD durante a partida
+    getCurrentRank() {
+        return {
+            letter: this.calculateRank()
+        };
+    },
+    
+    // Rank final da fase, com bônus de moedas (usado ao completar a fase)
+    getFinalRank() {
+        const letter = this.calculateRank();
+        return {
+            letter,
+            bonus: this.getRankBonus(letter),
+            color: this.getRankColor(letter),
+            description: this.getRankDescription(letter),
+            stats: this.getStats()
+        };
+    },
+    
     // Calcular rank baseado em performance
     calculateRank() {
         let score = 0;

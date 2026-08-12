@@ -176,7 +176,15 @@ const spawnSystem = {
         
         switch(type) {
             case 'basic':
-                enemy = new window.EnemyClasses.BaseEnemy(x, y, {
+                // 🔧 BUGFIX CRÍTICO: estava instanciando window.EnemyClasses.BaseEnemy
+                // (a classe abstrata/genérica, cujo draw() é só um
+                // ctx.fillRect() — um quadrado liso, sem asas, sem olhos,
+                // sem nenhum dos polígonos). O correto é BasicEnemy, a
+                // subclasse com o visual completo (guerreiro voador
+                // facetado). Por isso os inimigos "básicos" apareciam
+                // como quadrados mesmo depois de eu ter desenhado os
+                // polígonos — a classe certa nunca era usada.
+                enemy = new window.EnemyClasses.BasicEnemy(x, y, {
                     width: 40,
                     height: 40,
                     health: 50 * difficulty,

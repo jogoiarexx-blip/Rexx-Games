@@ -91,28 +91,28 @@ const hudSystem = {
         const x = 20;
         const y = 55;
         
-        ctx.fillStyle = '#FFD700';
+        // 🔧 BUGFIX (desempenho): estes textos são redesenhados TODO frame
+        // (60x/s), sempre. shadowBlur é uma das operações mais caras do
+        // Canvas 2D; num blur pequeno como este o ganho visual é quase
+        // imperceptível, então trocamos por um contorno sólido de 1px
+        // (muito mais barato) para manter a legibilidade sobre o fundo.
+        ctx.fillStyle = '#000';
         ctx.font = 'bold 18px Arial';
-        ctx.shadowBlur = 3;
-        ctx.shadowColor = '#000';
-        
+        ctx.fillText(`🎯 ${gameStats.score.toLocaleString()}`, x + 1, y + 1);
+        ctx.fillStyle = '#FFD700';
         ctx.fillText(`🎯 ${gameStats.score.toLocaleString()}`, x, y);
-        
-        ctx.shadowBlur = 0;
     },
     
     drawCoins(ctx) {
         const x = 20;
         const y = 80;
         
-        ctx.fillStyle = '#FFD700';
+        // 🔧 BUGFIX (desempenho): ver comentário em drawScore()
+        ctx.fillStyle = '#000';
         ctx.font = 'bold 18px Arial';
-        ctx.shadowBlur = 3;
-        ctx.shadowColor = '#000';
-        
+        ctx.fillText(`💰 ${gameStats.coins}`, x + 1, y + 1);
+        ctx.fillStyle = '#FFD700';
         ctx.fillText(`💰 ${gameStats.coins}`, x, y);
-        
-        ctx.shadowBlur = 0;
     },
     
     drawPhaseInfo(ctx) {
@@ -285,82 +285,7 @@ const hudSystem = {
     }
 };
 
-// Sistema de Rank
-const rankSystem = {
-    startTime: 0,
-    damageTaken: 0,
-    
-    init() {
-        this.startTime = Date.now();
-        this.damageTaken = 0;
-    },
-    
-    recordDamage(amount) {
-        this.damageTaken += amount;
-    },
-    
-    getCurrentRank() {
-        const phase = phaseSystem.currentPhase;
-        const progress = phaseSystem.getPhaseProgress();
-        const timeElapsed = (Date.now() - this.startTime) / 1000; // Em segundos
-        const score = gameStats.score;
-        
-        // Calcular rank baseado em múltiplos fatores
-        let points = 0;
-        
-        // Pontos por progresso (0-30)
-        points += (progress.percentage / 100) * 30;
-        
-        // Pontos por tempo (0-25) - mais rápido é melhor
-        const expectedTime = phase * 120; // 2 minutos por fase
-        const timeRatio = Math.max(0, 1 - (timeElapsed / expectedTime));
-        points += timeRatio * 25;
-        
-        // Pontos por dano não recebido (0-25)
-        const maxHealth = 100 + (upgrades.health.level * 20);
-        const healthRatio = 1 - (this.damageTaken / (maxHealth * 3)); // Pode levar até 3x a vida
-        points += Math.max(0, healthRatio) * 25;
-        
-        // Pontos por score (0-20)
-        const expectedScore = phase * 5000;
-        const scoreRatio = Math.min(1, score / expectedScore);
-        points += scoreRatio * 20;
-        
-        // Determinar letra do rank
-        let letter;
-        if (points >= 90) letter = 'SS';
-        else if (points >= 75) letter = 'S';
-        else if (points >= 60) letter = 'A';
-        else if (points >= 40) letter = 'B';
-        else letter = 'C';
-        
-        return {
-            letter: letter,
-            points: Math.floor(points),
-            details: {
-                progress: progress.percentage,
-                time: Math.floor(timeElapsed),
-                damage: this.damageTaken,
-                score: score
-            }
-        };
-    },
-    
-    getFinalRank() {
-        const rank = this.getCurrentRank();
-        
-        // Bônus de moedas baseado no rank
-        const bonuses = {
-            'C': 10,
-            'B': 25,
-            'A': 50,
-            'S': 100,
-            'SS': 200
-        };
-        
-        return {
-            ...rank,
-            bonus: bonuses[rank.letter]
-        };
-    }
-};
+// Sistema de Rank: ver rank-system.js (carregado antes deste arquivo).
+// A duplicata de "const rankSystem" que existia aqui foi removida porque
+// dois "const rankSystem" em <script> separados geram SyntaxError e
+// quebravam a execução deste arquivo inteiro (inclusive o hudSystem acima).

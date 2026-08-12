@@ -8,6 +8,9 @@
 </head>
 <body>
     <div id="game-container">
+        <!-- 🔧 NOVO: Botão de Mudo (áudio sintetizado via Web Audio API) -->
+        <button id="mute-toggle-btn" class="mute-toggle-btn" onclick="audioSystem.toggleMute()" aria-label="Ativar/Desativar Som">🔊</button>
+        
         <!-- Menu Principal -->
         <div id="main-menu" class="menu">
             <h1>🐉 DRAGON FURY</h1>
@@ -19,7 +22,7 @@
             <div class="features-list">
                 <p>✅ 6 Tipos de Inimigos Únicos</p>
                 <p>✅ 3 Bosses Épicos</p>
-                <p>✅ 6 Fases Progressivas</p>
+                <p>✅ 5 Fases Progressivas</p>
                 <p>✅ Sistema de Rank (C → SS)</p>
                 <p>✅ Dragões Escolta</p>
             </div>
@@ -38,6 +41,17 @@
             <div class="hud-item"><span class="hud-icon">🎯</span> Pontos: <span id="score">0</span></div>
             <div class="hud-item"><span class="hud-icon">❤️</span> Vida: <span id="health">100</span></div>
             <div class="hud-item"><span class="hud-icon">🔥</span> Fogo: <span id="firepower">1</span></div>
+        </div>
+
+        <!-- 🔧 NOVO: Controles Touch para Mobile (o jogo só tinha teclado) -->
+        <div id="touch-controls" class="touch-controls" style="display: none;">
+            <div id="touch-dpad" class="touch-dpad">
+                <button class="dpad-btn dpad-up" data-key="ArrowUp" aria-label="Cima">▲</button>
+                <button class="dpad-btn dpad-left" data-key="ArrowLeft" aria-label="Esquerda">◀</button>
+                <button class="dpad-btn dpad-right" data-key="ArrowRight" aria-label="Direita">▶</button>
+                <button class="dpad-btn dpad-down" data-key="ArrowDown" aria-label="Baixo">▼</button>
+            </div>
+            <button id="touch-fire" class="touch-fire-btn" data-key=" " aria-label="Atirar">🔥</button>
         </div>
 
         <!-- Menu de Pause -->
@@ -59,7 +73,17 @@
             </div>
             <p>Pontuação: <span id="stage-complete-score">0</span></p>
             <p>Moedas: <span id="stage-complete-coins">0</span></p>
-            <p class="stage-complete-hint">Pressione ENTER ou ESPAÇO para pular</p>
+
+            <!-- 🔧 NOVO: Seletor de fase - substitui o antigo avanço
+                 automático por 3 escolhas explícitas do jogador -->
+            <div id="stage-complete-actions" class="stage-complete-actions">
+                <button id="stage-complete-next-btn" class="menu-button stage-complete-btn"
+                        onclick="game.nextStage()">▶️ Próxima Fase</button>
+                <button class="menu-button stage-complete-btn stage-complete-btn-secondary"
+                        onclick="game.repeatStage()">🔁 Repetir Fase</button>
+                <button class="menu-button stage-complete-btn stage-complete-btn-secondary"
+                        onclick="ui.showUpgradesFromStageComplete()">🛒 Comprar Upgrade</button>
+            </div>
         </div>
 
         <!-- Jogo Completo -->
@@ -102,6 +126,12 @@
         </div>
     </div>
 
+    <!-- 🔧 NOVO: helpers de polígonos (usados por inimigos e bosses) -->
+    <script src="geo-utils.js"></script>
+    
+    <!-- 🔧 NOVO: sistema de áudio sintetizado (Web Audio API) -->
+    <script src="audio-system.js"></script>
+    
     <!-- Scripts Originais -->
     <script src="data.js"></script>
     <script src="player.js"></script>
@@ -112,7 +142,6 @@
     <!-- ✨ NOVO: Sistemas de Efeitos Visuais Avançados -->
     <script src="coin-effects.js"></script>
     <script src="powerup-effects.js"></script>
-    <script src="enemy-visual-effects.js"></script>
     
     <script src="entities.js"></script>
     <script src="achievements.js"></script>
@@ -157,6 +186,9 @@
     
     <!-- 🔧 CRÍTICO: Menu System - ADICIONADO! -->
     <script src="menu-system.js"></script>
+    
+    <!-- 🔧 NOVO: Controles Touch para Mobile -->
+    <script src="touch-controls.js"></script>
     
     <!-- Inicialização -->
     <script src="main.js"></script>

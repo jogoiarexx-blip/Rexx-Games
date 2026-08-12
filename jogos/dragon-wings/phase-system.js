@@ -2,7 +2,13 @@
 
 const phaseSystem = {
     currentPhase: 1,
-    maxPhases: 6,
+    // 🔧 BUGFIX: só existem arquivos/conteúdo completos para as fases 1-5
+    // (phase1-ceu-sereno.js ... phase5-invasao-cosmica.js, e data.js.stages
+    // também só vai até 5). A entrada "6: Batalha Final" abaixo era código
+    // morto que nunca tinha assets próprios; se currentPhase chegasse a 6
+    // outras partes do jogo que só sabem contar até 5 quebrariam. Fase 5
+    // agora é a fase final.
+    maxPhases: 5,
     
     phases: {
         1: {
@@ -343,6 +349,13 @@ const phaseSystem = {
         const phase = this.getCurrentPhase();
         if (gameData.bossActive) return false;
         
+        // 🔧 BUGFIX: sem essa checagem, no exato frame em que o boss morre
+        // (gameState já virou 'stage_complete', mas enemiesKilledThisStage
+        // ainda não foi zerado) esta função voltava a retornar true e
+        // recriava um boss novo instantaneamente, antes mesmo da tela de
+        // fase completa aparecer.
+        if (gameData.gameState !== 'playing') return false;
+        
         if (phase.boss.spawnCondition === 'kills') {
             return gameData.enemiesKilledThisStage >= phase.targetKills;
         }
@@ -358,6 +371,8 @@ const phaseSystem = {
             gameEntities.boss = new window.BossClasses[bossType]();
             gameData.bossActive = true;
             ui.showNotification(`⚠️ BOSS: ${gameEntities.boss.name}!`);
+            // 🔧 NOVO: efeito sonoro de alerta de boss
+            if (typeof audioSystem !== 'undefined') audioSystem.playBossWarning();
         } else {
             console.error('Boss class não encontrado:', bossType);
         }

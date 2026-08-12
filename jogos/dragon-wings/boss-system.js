@@ -22,10 +22,17 @@ class BaseBoss {
         this.invulnerable = false;
         this.animationFrame = 0;
         this.hitFlash = 0;
+        // 🔧 BUGFIX: sem essa flag, upgrades como Tiro Múltiplo podiam
+        // acertar o boss com 2+ fireballs no MESMO frame. A primeira já
+        // zerava a vida e chamava destroy()/completeStage(); a(s) seguinte(s)
+        // chamavam takeDamage() de novo no mesmo boss "morto", disparando
+        // destroy() e completeStage() outra(s) vez (bônus/moedas duplicados,
+        // tela de fase completa reaberta por cima dela mesma).
+        this.destroyed = false;
     }
     
     takeDamage(damage) {
-        if (this.invulnerable || this.state === 'entering') return false;
+        if (this.invulnerable || this.state === 'entering' || this.destroyed) return false;
         
         this.health -= damage;
         this.hitFlash = 15;
@@ -41,6 +48,7 @@ class BaseBoss {
         }
         
         if (this.health <= 0) {
+            this.destroyed = true;
             this.destroy();
             return true;
         }
@@ -389,39 +397,43 @@ class AncientDragonBoss extends BaseBoss {
         ctx.closePath();
         ctx.fill();
         
-        // Corpo principal
+        // Corpo principal (🔧 NOVO: decágono blindado em vez de elipse lisa)
         const bodyGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 50);
         bodyGradient.addColorStop(0, '#8B0000');
         bodyGradient.addColorStop(0.6, '#A52A2A');
         bodyGradient.addColorStop(1, '#8B0000');
         ctx.fillStyle = bodyGradient;
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, 50, 55, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.scale(1, 55 / 50);
+        fillPolygon(ctx, 0, 0, 50, 10, -Math.PI / 2);
+        ctx.restore();
         
-        // Escamas
+        // Escamas (🔧 NOVO: losangos facetados em vez de pontinhos redondos)
         ctx.fillStyle = 'rgba(139, 0, 0, 0.5)';
         for (let row = 0; row < 4; row++) {
             for (let col = 0; col < 5; col++) {
                 const scaleX = centerX - 35 + col * 18;
                 const scaleY = centerY - 40 + row * 20;
-                ctx.beginPath();
-                ctx.arc(scaleX, scaleY, 4, 0, Math.PI * 2);
-                ctx.fill();
+                fillDiamond(ctx, scaleX, scaleY, 4.5);
             }
         }
         
-        // Cabeça
+        // Cabeça (🔧 NOVO: heptágono em vez de elipse)
         ctx.fillStyle = '#A52A2A';
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY - 50, 35, 30, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.save();
+        ctx.translate(centerX, centerY - 50);
+        ctx.scale(1, 30 / 35);
+        fillPolygon(ctx, 0, 0, 35, 7, -Math.PI / 2);
+        ctx.restore();
         
-        // Focinho
+        // Focinho (🔧 NOVO: hexágono em vez de elipse)
         ctx.fillStyle = '#8B0000';
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY - 70, 25, 20, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.save();
+        ctx.translate(centerX, centerY - 70);
+        ctx.scale(1, 20 / 25);
+        fillPolygon(ctx, 0, 0, 25, 6, -Math.PI / 2);
+        ctx.restore();
         
         // Chifres
         ctx.fillStyle = '#2F4F4F';
@@ -616,7 +628,7 @@ class SegmentedSerpentBoss extends BaseBoss {
         this.segments.forEach((seg, i) => {
             const pulse = Math.sin(this.animationFrame * 0.1 + i * 0.5) * 3;
             
-            // Corpo do segmento
+            // Corpo do segmento (🔧 NOVO: octógono cristalino em vez de círculo)
             const gradient = ctx.createRadialGradient(seg.x, seg.y, 0, seg.x, seg.y, seg.size);
             gradient.addColorStop(0, '#00FFFF');
             gradient.addColorStop(0.5, '#00CED1');
@@ -625,11 +637,9 @@ class SegmentedSerpentBoss extends BaseBoss {
             ctx.fillStyle = gradient;
             ctx.shadowBlur = 15 + pulse;
             ctx.shadowColor = '#00CED1';
-            ctx.beginPath();
-            ctx.arc(seg.x, seg.y, seg.size / 2 + pulse, 0, Math.PI * 2);
-            ctx.fill();
+            fillPolygon(ctx, seg.x, seg.y, seg.size / 2 + pulse, 8, this.animationFrame * 0.02 + i);
             
-            // Escamas cristalinas
+            // Escamas cristalinas (🔧 NOVO: losangos em vez de pontinhos redondos)
             if (i % 2 === 0) {
                 ctx.fillStyle = '#7FFFD4';
                 ctx.shadowBlur = 10;
@@ -638,9 +648,7 @@ class SegmentedSerpentBoss extends BaseBoss {
                     const angle = (Math.PI * 2 / 6) * j + this.animationFrame * 0.05;
                     const x = seg.x + Math.cos(angle) * (seg.size / 3);
                     const y = seg.y + Math.sin(angle) * (seg.size / 3);
-                    ctx.beginPath();
-                    ctx.arc(x, y, 3, 0, Math.PI * 2);
-                    ctx.fill();
+                    fillDiamond(ctx, x, y, 3.5, angle);
                 }
             }
         });
@@ -832,7 +840,7 @@ class ChaosGeometryBoss extends BaseBoss {
             ctx.shadowColor = '#FFFFFF';
         }
         
-        // Núcleo central caótico
+        // Núcleo central caótico (🔧 NOVO: gema de 12 pontas em vez de círculo — reforça o caos)
         const coreGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 60);
         coreGradient.addColorStop(0, '#FF00FF');
         coreGradient.addColorStop(0.5, '#8B008B');
@@ -841,8 +849,7 @@ class ChaosGeometryBoss extends BaseBoss {
         ctx.fillStyle = coreGradient;
         ctx.shadowBlur = 30;
         ctx.shadowColor = '#FF00FF';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 60, 0, Math.PI * 2);
+        drawGemPath(ctx, centerX, centerY, 60, 45, 12, this.animationFrame * 0.015);
         ctx.fill();
         
         // Desenhar geometrias orbitantes
@@ -886,21 +893,17 @@ class ChaosGeometryBoss extends BaseBoss {
             ctx.restore();
         });
         
-        // Olho central hipnótico
+        // Olho central hipnótico (🔧 NOVO: decágono + octógono em vez de círculos)
         const pupilSize = 15 + Math.sin(this.animationFrame * 0.1) * 5;
         ctx.fillStyle = '#FFD700';
         ctx.shadowBlur = 20;
         ctx.shadowColor = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, pupilSize, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygon(ctx, centerX, centerY, pupilSize, 10, this.animationFrame * 0.03);
         
         ctx.fillStyle = '#FF00FF';
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#FF00FF';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, pupilSize / 2, 0, Math.PI * 2);
-        ctx.fill();
+        fillPolygon(ctx, centerX, centerY, pupilSize / 2, 8, -this.animationFrame * 0.05);
         
         // Runas místicas
         for (let i = 0; i < 6; i++) {

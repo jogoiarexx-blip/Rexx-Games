@@ -159,6 +159,14 @@ const upgrades = {
         baseCost: 100,
         icon: '🎯'
     },
+    bulletSpeed: {
+        name: 'Velocidade do Tiro',
+        description: 'Seus tiros viajam mais rápido pela tela',
+        level: parseInt(localStorage.getItem('upgradeBulletSpeed')) || 0,
+        maxLevel: 5,
+        baseCost: 80,
+        icon: '💨'
+    },
     shield: {
         name: 'Escudo Dragão',
         description: 'Reduz o dano recebido',
