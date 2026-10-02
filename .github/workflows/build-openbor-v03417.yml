@@ -6,6 +6,11 @@ on:
       - build-openbor-v03417
     paths:
       - ".github/workflows/build-openbor-v03417.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-openbor-v03417.yml"
 
 permissions:
   contents: read
